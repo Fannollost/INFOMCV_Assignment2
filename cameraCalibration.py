@@ -214,7 +214,7 @@ def main(currentCam):
         objpoints = [] # 3d point in real wold space
         imgpoints = [] # 2d points in image space
 
-        images = getImagesFromVideo(camera, const.SELECTED_VIDEO, 4)
+        images = getImagesFromVideo(camera, const.SELECTED_VIDEO, 6)
 
         global counter
         global clickPoints
