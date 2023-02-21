@@ -24,8 +24,7 @@ def draw(img, corners, imgpts):
 
 #Draws the cube on the board
 def drawCube(img, corners, imgpts):
-    imgpts = np.int32(imgpts).reshape(-1,2)
-    
+    imgpts = (const.SQUARE_SIZE*np.int32(imgpts)).reshape(-1,2)
     # draw ground floor in green
     img = cv.drawContours(img, [imgpts[:4]],-1,(0,255,0),-2)
     # draw pillars in blue color
@@ -88,13 +87,14 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     if webcam :
         ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, cv.CALIB_CB_FAST_CHECK)
-    else :
-        ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, None)
+    else:
+        #ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, None)
+        imgpoints, objpoints, corners = pickCorners([],[],objp,frame,gray,criteria, False)
+        ret = True
 
     if (ret == True):
         corners2 = cv.cornerSubPix(gray, corners, (5, 5), (-1, -1), criteria)
         ret, rvecs, tvecs = cv.solvePnP(objp, corners2, mtx, dist)
-        
         imgpts, jac = cv.projectPoints(const.AXIS, rvecs, tvecs, mtx, dist)
         cubeimgpts, jac = cv.projectPoints(const.CUBE_AXIS, rvecs, tvecs, mtx, dist)
         img = draw(frame, corners2, imgpts)
@@ -102,6 +102,80 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False):
         return img
     else:
         return frame
+
+def pickCorners(imgpoints, objpoints, objp, img, gray, criteria, showLines = True):
+    showImage(const.WINDOW_NAME, img)
+    while(counter < 4):
+        #Get mouseinput
+        #the mouse clicking should be done by starting at the bottom right black corner in a horizontally rotated chessboard. If the chessboard
+        #is rotated differently, the same corresponding corner should be picked 
+        cv.setMouseCallback(const.WINDOW_NAME, click_event)
+        cv.waitKey(1)
+
+        #visual feedback for mouseclicks
+        if(counter != 0):
+            img = cv.circle(img, clickPoints[counter - 1], 5, const.RED)
+            showImage(const.WINDOW_NAME, img)
+
+    #prepare the pointset
+    interpolatedPoints = np.zeros((const.BOARD_SIZE[1], const.BOARD_SIZE[0], 2))
+    largest = 0
+    smallest = 5000 
+
+    #indexes
+    diagonalPoint = 0
+    closestPoint = 0
+
+    #find closest and diagonal point
+    for j in range(len(clickPoints)):
+        dist = math.dist(clickPoints[0], clickPoints[j])
+        if(dist != 0 and smallest > dist):
+            smallest = dist
+            closestPoint = j
+        if(dist != 0 and largest < dist):
+            largest = dist
+            diagonalPoint = j
+
+    #determine approximate distance between points
+    shortSteps = math.dist(clickPoints[0],clickPoints[closestPoint]) / (const.BOARD_SIZE[1])
+    longSteps = math.dist(clickPoints[closestPoint], clickPoints[diagonalPoint]) / (const.BOARD_SIZE[0])
+
+    #generate uniform set of points
+    interpolatedPoints[0,0] = clickPoints[0]
+    orig = clickPoints[0]
+    for x in range(const.BOARD_SIZE[0]):
+        for y in range(const.BOARD_SIZE[1]):
+            interpolatedPoints[y,x] = (orig[0] + longSteps * x, orig[1] + shortSteps * y)
+
+    #get uniform corners      
+    stepFactorX = const.BOARD_SIZE[0] - 1
+    stepFactorY = const.BOARD_SIZE[1] - 1
+
+    uniform = np.array((orig, 
+    (orig[0] + longSteps * stepFactorX, orig[1] + shortSteps * 0),
+    (orig[0] + longSteps * stepFactorX, orig[1] + shortSteps * stepFactorY),
+    (orig[0] + longSteps * 0, orig[1] + shortSteps * stepFactorY))).astype(np.float32)
+    dst = np.array(clickPoints).astype(np.float32)
+  
+    #transform uniform set of points to desired cornerpoints
+    transform_mat = cv.findHomography(uniform,dst)[0]
+    corners2 = cv.perspectiveTransform(interpolatedPoints, transform_mat)
+    corners2 = np.array(corners2).reshape(const.BOARD_SIZE[0]*const.BOARD_SIZE[1],1,2).astype(np.float32)
+
+    edges = cv.Canny(img, 150, 400)
+    corners2 = cv.cornerSubPix(edges,corners2,(5,5), (-1,-1), criteria)
+
+    if not checkQuality(gray, corners2, 5) and const.REJECT_LOW_QUALITY:
+        #print("Rejected Image: " + str(fname))
+        return imgpoints, objpoints
+    
+    imgpoints.append(corners2)
+    objpoints.append(objp)
+    # Draw and display the corners
+    if(showLines):
+        cv.drawChessboardCorners(img, const.BOARD_SIZE, corners2, True)
+        showImage(const.WINDOW_NAME, img, 100)
+    return imgpoints, objpoints, corners2
 
 def getImagesFromVideo(camera, videoType, amountOfFrames):
     video = cv.VideoCapture(camera + videoType)
@@ -121,7 +195,7 @@ def main():
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objp = np.zeros((const.BOARD_SIZE[0]*const.BOARD_SIZE[1],3), np.float32)
-    objp[:,:2] = (const.SQUARE_SIZE*np.mgrid[0:const.BOARD_SIZE[0], 0:const.BOARD_SIZE[1]]).T.reshape(-1,2)
+    objp[:,:2] = np.mgrid[0:const.BOARD_SIZE[0], 0:const.BOARD_SIZE[1]].T.reshape(-1,2)
     #if no configuration file is found, or if calibration is forced, calibrate the camera
     #need to check if config is done!
     if(const.FORCE_CALIBRATION):
@@ -161,77 +235,7 @@ def main():
                 showImage(const.WINDOW_NAME, img, 300)
 
             else:
-                showImage(const.WINDOW_NAME, img)
-                while(counter < 4):
-                    #Get mouseinput
-                    #the mouse clicking should be done by starting at the bottom right black corner in a horizontally rotated chessboard. If the chessboard
-                    #is rotated differently, the same corresponding corner should be picked 
-                    cv.setMouseCallback(const.WINDOW_NAME, click_event)
-                    cv.waitKey(1)
-
-                    #visual feedback for mouseclicks
-                    if(counter != 0):
-                        img = cv.circle(img, clickPoints[counter - 1], 5, const.RED)
-                        showImage(const.WINDOW_NAME, img)
-
-                #prepare the pointset
-                interpolatedPoints = np.zeros((const.BOARD_SIZE[1], const.BOARD_SIZE[0], 2))
-                largest = 0
-                smallest = 5000 
-
-                #indexes
-                diagonalPoint = 0
-                closestPoint = 0
-
-                #find closest and diagonal point
-                for j in range(len(clickPoints)):
-                    dist = math.dist(clickPoints[0], clickPoints[j])
-                    if(dist != 0 and smallest > dist):
-                        smallest = dist
-                        closestPoint = j
-                    if(dist != 0 and largest < dist):
-                        largest = dist
-                        diagonalPoint = j
-
-                #determine approximate distance between points
-                shortSteps = math.dist(clickPoints[0],clickPoints[closestPoint]) / (const.BOARD_SIZE[1])
-                longSteps = math.dist(clickPoints[closestPoint], clickPoints[diagonalPoint]) / (const.BOARD_SIZE[0])
-
-                #generate uniform set of points
-                interpolatedPoints[0,0] = clickPoints[0]
-                orig = clickPoints[0]
-                for x in range(const.BOARD_SIZE[0]):
-                    for y in range(const.BOARD_SIZE[1]):
-                        interpolatedPoints[y,x] = (orig[0] + longSteps * x, orig[1] + shortSteps * y)
-
-                #get uniform corners      
-                stepFactorX = const.BOARD_SIZE[0] - 1
-                stepFactorY = const.BOARD_SIZE[1] - 1
-
-                uniform = np.array((orig, 
-                (orig[0] + longSteps * stepFactorX, orig[1] + shortSteps * 0),
-                (orig[0] + longSteps * stepFactorX, orig[1] + shortSteps * stepFactorY),
-                (orig[0] + longSteps * 0, orig[1] + shortSteps * stepFactorY))).astype(np.float32)
-                dst = np.array(clickPoints).astype(np.float32)
-  
-                #transform uniform set of points to desired cornerpoints
-                transform_mat = cv.findHomography(uniform,dst)[0]
-                corners2 = cv.perspectiveTransform(interpolatedPoints, transform_mat)
-                corners2 = np.array(corners2).reshape(const.BOARD_SIZE[0]*const.BOARD_SIZE[1],1,2).astype(np.float32)
-
-                edges = cv.Canny(img, 150, 400)
-                corners2 = cv.cornerSubPix(edges,corners2,(5,5), (-1,-1), criteria)
-
-                imgpoints.append(corners2)
-                objpoints.append(objp)
-
-                if not checkQuality(gray, corners2, 5) and const.REJECT_LOW_QUALITY:
-                    #print("Rejected Image: " + str(fname))
-                    continue
-
-                # Draw and display the corners
-                cv.drawChessboardCorners(img, const.BOARD_SIZE, corners2, True)
-                showImage(const.WINDOW_NAME, img, 3000)
+                pickCorners(imgpoints,objpoints,objp,img, gray, criteria)  
 
         ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 
