@@ -40,11 +40,11 @@ FORCE_CALIBRATION = True
 REJECT_LOW_QUALITY = False
 
 #video paths
-VIDEO_PATH_CAM1 = "./data/cam1/"
-VIDEO_PATH_CAM2 = "./data/cam2/"
-VIDEO_PATH_CAM3 = "./data/cam3/"
-VIDEO_PATH_CAM4 = "./data/cam4/"
-SELECTED_CAM = VIDEO_PATH_CAM1
+CAM1 = ("./data/cam1/",(8,6))
+CAM2 = ("./data/cam2/",(8,6))
+CAM3 = ("./data/cam3/",(8,6))
+CAM4 = ("./data/cam4/",(8,6))
+SELECTED_CAM = CAM2
 
 #videos
 VIDEO_INTRINSICS = 'intrinsics.avi'

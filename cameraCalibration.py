@@ -4,6 +4,7 @@ import cv2 as cv
 import glob
 import math
 import os.path
+import xml.etree.ElementTree as ET
 
 global clickPoints
 global counter
@@ -98,7 +99,8 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False):
         imgpts, jac = cv.projectPoints(const.AXIS, rvecs, tvecs, mtx, dist)
         cubeimgpts, jac = cv.projectPoints(const.CUBE_AXIS, rvecs, tvecs, mtx, dist)
         img = draw(frame, corners2, imgpts)
-        img = drawCube(img, corners2, cubeimgpts)
+        #img = drawCube(img, corners2, cubeimgpts)
+        saveCalibration(mtx,dist,rvecs,tvecs)
         return img
     else:
         return frame
@@ -191,7 +193,15 @@ def getImagesFromVideo(camera, videoType, amountOfFrames):
 
     return frames 
 
-def main():
+def saveCalibration(mtx, dist, rvecs, tvecs):
+    return 0
+    #data = ET.Element()
+    # write to xml!
+
+def main(currentCam):
+
+    camera = currentCam[0]
+    const.BOARD_SIZE = currentCam[1]
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objp = np.zeros((const.BOARD_SIZE[0]*const.BOARD_SIZE[1],3), np.float32)
@@ -204,7 +214,7 @@ def main():
         objpoints = [] # 3d point in real wold space
         imgpoints = [] # 2d points in image space
 
-        images = getImagesFromVideo(const.SELECTED_CAM, const.SELECTED_VIDEO, 4)
+        images = getImagesFromVideo(camera, const.SELECTED_VIDEO, 4)
 
         global counter
         global clickPoints
@@ -285,7 +295,7 @@ def main():
         cap.release()
     else:    
         #draw axis and cube on test image
-        frames = getImagesFromVideo(const.SELECTED_CAM, const.VIDEO_CHECKERBOARD, 1)
+        frames = getImagesFromVideo(camera, const.VIDEO_CHECKERBOARD, 1)
         img = drawOrigin(frames[0], criteria, objp, mtx, dist)
         showImage(const.WINDOW_NAME, img, 0)
 
@@ -294,4 +304,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    for i in range(4):
+        match i:
+            case 0:
+                main(const.CAM1)
+            case 1:
+                main(const.CAM2)
+            case 2:
+                main(const.CAM3)
+            case 3:
+                main(const.CAM4)
