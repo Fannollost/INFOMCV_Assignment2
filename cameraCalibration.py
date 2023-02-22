@@ -84,7 +84,7 @@ def improveQuality(gray):
     return gray, ret, corners
 
 #function to draw the axis and the cube on given input frame
-def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False):
+def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False, camera = None):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
     if webcam :
         ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, cv.CALIB_CB_FAST_CHECK)
@@ -100,7 +100,7 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False):
         cubeimgpts, jac = cv.projectPoints(const.CUBE_AXIS, rvecs, tvecs, mtx, dist)
         img = draw(frame, corners2, imgpts)
         #img = drawCube(img, corners2, cubeimgpts)
-        saveCalibration(mtx,dist,rvecs,tvecs)
+        saveCalibration(mtx,dist,rvecs,tvecs, camera)
         return img
     else:
         return frame
@@ -181,22 +181,56 @@ def pickCorners(imgpoints, objpoints, objp, img, gray, criteria, showLines = Tru
 
 def getImagesFromVideo(camera, videoType, amountOfFrames):
     video = cv.VideoCapture(camera + videoType)
-    fps = video.get(cv.CAP_PROP_FPS)
     frame_count = int(video.get(cv.CAP_PROP_FRAME_COUNT))
-    duration = frame_count / fps
     frames = []
     for i in range(amountOfFrames):
         frame_number = i * int(frame_count / amountOfFrames)
         video.set(cv.CAP_PROP_POS_FRAMES, frame_number)
         ret, frame = video.read()
         frames.append(frame)
-
     return frames 
 
-def saveCalibration(mtx, dist, rvecs, tvecs):
+def saveCalibration(mtx, dist, rvecs, tvecs, camera):
+    root = ET.Element('opencv_storage')
+    camMat = ET.SubElement(root, 'CameraMatrix')
+    camMat.set('type_id', 'opencv-matrix')
+    rows = ET.SubElement(camMat, 'rows')
+    rows.text = "3"
+    cols = ET.SubElement(camMat, 'cols')
+    cols.text = "3"
+    dt = ET.SubElement(camMat, 'dt')
+    dt.text = "f"
+    data = ET.SubElement(camMat, 'data')
+    mtxText = ""
+    for l in range(3):
+        for c in range (3):
+            mtxText = mtxText + str(mtx[l,c]) + " "
+        mtxText = mtxText[::-1]
+        mtxText = mtxText + "\n"
+    data.text = mtxText
+
+
+    dCoeff = ET.SubElement(root, 'DistortionCoeffs')
+    dCoeff.set('type_id', 'opencv-matrix')
+    rows = ET.SubElement(dCoeff, 'rows')
+    rows.text = "5"
+    cols = ET.SubElement(dCoeff, 'cols')
+    cols.text = "1"
+    dt = ET.SubElement(dCoeff, 'dt')
+    dt.text = "f"
+    data = ET.SubElement(dCoeff, 'data')
+    dCoeffText = ""
+    for l in range(5):
+        dCoeffText = dCoeffText + str(dist[0,l]) +"\n"
+    data.text = dCoeffText
+
+#    xmlTxt = ET.tostring(root)
+    tree = ET.ElementTree(root)
+
+    f = open(camera+"data.xml", "wb")
+    tree.write(f, encoding='utf-8', xml_declaration=True)
+    f.close()
     return 0
-    #data = ET.Element()
-    # write to xml!
 
 def main(currentCam):
 
@@ -214,7 +248,7 @@ def main(currentCam):
         objpoints = [] # 3d point in real wold space
         imgpoints = [] # 2d points in image space
 
-        images = getImagesFromVideo(camera, const.SELECTED_VIDEO, 6)
+        images = getImagesFromVideo(camera, const.SELECTED_VIDEO, const.IMAGES_CALIB_NB)
 
         global counter
         global clickPoints
@@ -256,9 +290,6 @@ def main(currentCam):
             mean_error += error
 
         print("total error: {}".format(mean_error/len(objpoints)) )
-        # https://stackoverflow.com/questions/23781089/opencv-calibratecamera-2-reprojection-error-and-custom-computed-one-not-agree?rq=1
-        # https://stackoverflow.com/questions/37901806/reprojection-of-calibratecamera-and-projectpoints
-        # print("Root-mean-square error : "+str(ret)+ " px")
         np.savez(const.DATA_PATH, mtx=mtx, dist=dist, rvecs=rvecs, tvecs=tvecs)
     else:
         calibration = np.load(const.DATA_PATH)
@@ -296,7 +327,7 @@ def main(currentCam):
     else:    
         #draw axis and cube on test image
         frames = getImagesFromVideo(camera, const.VIDEO_CHECKERBOARD, 1)
-        img = drawOrigin(frames[0], criteria, objp, mtx, dist)
+        img = drawOrigin(frames[0], criteria, objp, mtx, dist, camera=camera)
         showImage(const.WINDOW_NAME, img, 0)
 
     cv.destroyAllWindows()
@@ -304,13 +335,6 @@ def main(currentCam):
 
 
 if __name__ == "__main__":
+    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     for i in range(4):
-        match i:
-            case 0:
-                main(const.CAM1)
-            case 1:
-                main(const.CAM2)
-            case 2:
-                main(const.CAM3)
-            case 3:
-                main(const.CAM4)
+        main(camArray[i])
