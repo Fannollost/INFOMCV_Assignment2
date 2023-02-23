@@ -86,7 +86,11 @@ def click_event(event, x, y, flags, params):
             showImage(const.WINDOW_NAME, maskF)
         showMask = not showMask
 
+def getVerticalLine(size):
+    return np.ones(shape=[size, 1], dtype=np.uint8)
 
+def getHorizontalLine(size):
+    return np.ones(shape=[1, size], dtype=np.uint8)
 
 def substractBackground(camera, videoType, model):
     video = cv.VideoCapture(camera + videoType)
@@ -107,12 +111,16 @@ def substractBackground(camera, videoType, model):
     for i in range(l):
         for j in range(c):
             raw[i,j] = mask(model[i, j], frame[i, j])
+
     erode = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
+    erode = cv.morphologyEx(erode, cv.MORPH_OPEN, getVerticalLine(5))
+    erode = cv.morphologyEx(erode, cv.MORPH_OPEN, getHorizontalLine(3))
+
     # Setting global variable for click event (debuging)
-    showMask = True
     m = model
     f = frame
     maskF = erode
+    showMask = True
     showImage(const.WINDOW_NAME, erode)
     cv.setMouseCallback(const.WINDOW_NAME, click_event)
 
@@ -139,5 +147,5 @@ def substractBackground(camera, videoType, model):
 
 if __name__ == "__main__":
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-    model = backgroundModel(camArray[3][0], const.VIDEO_BACKGROUND)
-    substractBackground(camArray[3][0], const.VIDEO_TEST, model)
+    model = backgroundModel(camArray[0][0], const.VIDEO_BACKGROUND)
+    substractBackground(camArray[0][0], const.VIDEO_TEST, model)
