@@ -76,17 +76,24 @@ def mask(model, val):
 def click_event(event, x, y, flags, params):
     if event == cv.EVENT_LBUTTONDOWN:
         for k in range(3):
-            print("CHANNEL : " + str(k))
-            print("MODEL Mean : " + str(m[y,x,k].mean) + " SD : " + str(m[y,x,k].std))
-            print("FRAME val : " + str(f[y,x,k]))
+            print("CHANNEL " + str(k) + ": " + str(channelDist(m[y,x], f[y,x], k)))
         print("Total dist : " + str(dist(m[y,x],f[y,x])))
+    if event == cv.EVENT_RBUTTONDOWN:
+        global showMask
+        if showMask :
+            showImage(const.WINDOW_NAME, f)
+        else :
+            showImage(const.WINDOW_NAME, maskF)
+        showMask = not showMask
+
+
 
 def substractBackground(camera, videoType, model):
     video = cv.VideoCapture(camera + videoType)
     frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
     c = int(video.get(cv.CAP_PROP_FRAME_WIDTH ))
     l = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
-    res = np.empty(shape=[l, c, 3], dtype=np.uint8)
+    res = np.empty(shape=[l, c], dtype=np.uint8)
 
     # for i in range(frameCount):
     video.set(cv.CAP_PROP_POS_FRAMES, 0)
@@ -95,11 +102,19 @@ def substractBackground(camera, videoType, model):
     for i in range(l):
         for j in range(c):
             res[i,j] = mask(model[i, j], frame[i, j])
-    showImage(const.WINDOW_NAME, res, 1000)
+
+    #can be simplified to close
+    erode = cv.morphologyEx(res, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, (15,15)))
+
+    showImage(const.WINDOW_NAME, erode)
     global m
     global f
+    global maskF
+    global showMask
+    showMask = True
     m = model
     f = frame
+    maskF = erode
     while True:
         #Get mouseinput
         cv.setMouseCallback(const.WINDOW_NAME, click_event)
