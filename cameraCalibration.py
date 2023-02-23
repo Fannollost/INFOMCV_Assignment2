@@ -210,7 +210,7 @@ def saveCalibration(mtx, dist, rvecs, tvecs, camera):
     for l in range(3):
         for c in range (3):
             mtxText = mtxText + str(mtx[l,c]) + " "
-        mtxText = mtxText[::-1]
+        mtxText = mtxText[:-1]
         mtxText = mtxText + "\n"
     data.text = mtxText
 
