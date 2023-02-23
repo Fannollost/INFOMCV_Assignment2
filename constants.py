@@ -61,4 +61,4 @@ V = 2
 H_WEIGHT = 8
 S_WEIGHT = 4
 V_WEIGHT = 1 # This is shadow detection
-THRESHOLD = 150
+THRESHOLD = 160
