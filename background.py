@@ -86,8 +86,21 @@ def click_event(event, x, y, flags, params):
             showImage(const.WINDOW_NAME, maskF)
         showMask = not showMask
 
+def getVerticalLine(size):
+    return np.ones(shape=[size, 1], dtype=np.uint8)
 
+def getHorizontalLine(size):
+    return np.ones(shape=[1, size], dtype=np.uint8)
 
+def getAxisAlignedCross(size):
+    res = np.zeros(shape=size, dtype=np.uint8)
+    l = size[0]//2
+    c = size[1]//2
+    for i in range(size[0]):
+        for j in range(size[1]):
+            if i == l or j == c:
+                res[i,j] = 1
+    return res
 def substractBackground(camera, videoType, model):
     video = cv.VideoCapture(camera + videoType)
     frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
@@ -107,16 +120,20 @@ def substractBackground(camera, videoType, model):
     for i in range(l):
         for j in range(c):
             raw[i,j] = mask(model[i, j], frame[i, j])
-    erode = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
+
+    raw = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
+    raw = cv.morphologyEx(raw, cv.MORPH_OPEN, getAxisAlignedCross((5,3)))
+    raw = cv.morphologyEx(raw, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
+
     # Setting global variable for click event (debuging)
-    showMask = True
     m = model
     f = frame
-    maskF = erode
-    showImage(const.WINDOW_NAME, erode)
+    maskF = raw
+    showMask = True
+    showImage(const.WINDOW_NAME, raw)
     cv.setMouseCallback(const.WINDOW_NAME, click_event)
 
-    contours, _ = cv.findContours(erode, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+    contours, _ = cv.findContours(raw, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
     big_blobs = []
 
     if len(contours) > 0:
@@ -129,15 +146,16 @@ def substractBackground(camera, videoType, model):
     for i in range(len(big_blobs)):
         res = cv.drawContours(res, contours, big_blobs[i], 255, cv.FILLED, 8)
 
-    res = cv.bitwise_and(res, erode)
+    res = cv.bitwise_and(res, raw)
     maskF = res
     # Show keypoints
     showImage(const.WINDOW_NAME, res, 0)
 
-    print("THE END")
-
 
 if __name__ == "__main__":
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-    model = backgroundModel(camArray[3][0], const.VIDEO_BACKGROUND)
-    substractBackground(camArray[3][0], const.VIDEO_TEST, model)
+    for i in range(4):
+        print(str(i))
+        model = backgroundModel(camArray[i][0], const.VIDEO_BACKGROUND)
+        substractBackground(camArray[i][0], const.VIDEO_TEST, model)
+    print("THE END")
