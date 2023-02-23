@@ -107,7 +107,7 @@ def substractBackground(camera, videoType, model):
     for i in range(l):
         for j in range(c):
             raw[i,j] = mask(model[i, j], frame[i, j])
-    erode = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+    erode = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
     # Setting global variable for click event (debuging)
     showMask = True
     m = model
@@ -129,6 +129,7 @@ def substractBackground(camera, videoType, model):
     for i in range(len(big_blobs)):
         res = cv.drawContours(res, contours, big_blobs[i], 255, cv.FILLED, 8)
 
+    res = cv.bitwise_and(res, erode)
     maskF = res
     # Show keypoints
     showImage(const.WINDOW_NAME, res, 0)
@@ -138,5 +139,5 @@ def substractBackground(camera, videoType, model):
 
 if __name__ == "__main__":
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-    model = backgroundModel(camArray[1][0], const.VIDEO_BACKGROUND)
-    substractBackground(camArray[1][0], const.VIDEO_TEST, model)
+    model = backgroundModel(camArray[3][0], const.VIDEO_BACKGROUND)
+    substractBackground(camArray[3][0], const.VIDEO_TEST, model)
