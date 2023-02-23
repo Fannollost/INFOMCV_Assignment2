@@ -107,6 +107,8 @@ def substractBackground(camera, videoType, model):
     erode = cv.morphologyEx(res, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, (15,15)))
 
     showImage(const.WINDOW_NAME, erode)
+
+    #Setting global variable for click event (debuging)
     global m
     global f
     global maskF
@@ -115,6 +117,7 @@ def substractBackground(camera, videoType, model):
     m = model
     f = frame
     maskF = erode
+
     while True:
         #Get mouseinput
         cv.setMouseCallback(const.WINDOW_NAME, click_event)
