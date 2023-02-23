@@ -7,4 +7,10 @@
 0.0012027548606610148
 -6.556988101590787e-05
 -0.024075322812462344
-</data></DistortionCoeffs></opencv_storage>
+</data></DistortionCoeffs><RVecs type_id="opencv-matrix"><rows>3</rows><cols>1</cols><dt>f</dt><data>-1.6452040611392702
+0.06737235694595446
+0.021135055795242177
+</data></RVecs><TVecs type_id="opencv-matrix"><rows>3</rows><cols>1</cols><dt>f</dt><data>-1.487618828111611
+13.766544223470207
+31.056500579031894
+</data></TVecs></opencv_storage>

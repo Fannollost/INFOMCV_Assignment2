@@ -229,6 +229,34 @@ def saveCalibration(mtx, dist, rvecs, tvecs, camera):
         dCoeffText = dCoeffText + str(dist[0,l]) +"\n"
     data.text = dCoeffText
 
+    rvecsValue = ET.SubElement(root, 'RVecs')
+    rvecsValue.set('type_id', 'opencv-matrix')
+    rows = ET.SubElement(rvecsValue, 'rows')
+    rows.text = "3"
+    cols = ET.SubElement(rvecsValue, 'cols')
+    cols.text = "1"
+    dt = ET.SubElement(rvecsValue, 'dt')
+    dt.text = "f"
+    data = ET.SubElement(rvecsValue, 'data')
+    rvecsValue = ""
+    for l in range(3):
+        rvecsValue = rvecsValue + str(rvecs[l,0]) +"\n"
+    data.text = rvecsValue
+
+    tvecsValue = ET.SubElement(root, 'TVecs')
+    tvecsValue.set('type_id', 'opencv-matrix')
+    rows = ET.SubElement(tvecsValue, 'rows')
+    rows.text = "3"
+    cols = ET.SubElement(tvecsValue, 'cols')
+    cols.text = "1"
+    dt = ET.SubElement(tvecsValue, 'dt')
+    dt.text = "f"
+    data = ET.SubElement(tvecsValue, 'data')
+    tvecsValue = ""
+    for l in range(3):
+        tvecsValue = tvecsValue + str(tvecs[l,0]) +"\n"
+    data.text = tvecsValue
+
 #    xmlTxt = ET.tostring(root)
     tree = ET.ElementTree(root)
 
@@ -340,6 +368,6 @@ def main(currentCam):
 
 
 if __name__ == "__main__":
-    camArray = [const.CAM3]
-    for i in range(1):
+    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
+    for i in range(len(camArray)):
         main(camArray[i])
