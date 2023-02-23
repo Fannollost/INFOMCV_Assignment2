@@ -93,39 +93,48 @@ def substractBackground(camera, videoType, model):
     frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
     c = int(video.get(cv.CAP_PROP_FRAME_WIDTH ))
     l = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
-    res = np.empty(shape=[l, c], dtype=np.uint8)
+    raw = np.empty(shape=[l, c], dtype=np.uint8)
 
-    # for i in range(frameCount):
+    global m
+    global f
+    global maskF
+    global showMask
+
+    # for fc in range(frameCount):
     video.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame = video.read()
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     for i in range(l):
         for j in range(c):
-            res[i,j] = mask(model[i, j], frame[i, j])
-
-    #can be simplified to close
-    erode = cv.morphologyEx(res, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_RECT, (15,15)))
-
-    showImage(const.WINDOW_NAME, erode)
-
-    #Setting global variable for click event (debuging)
-    global m
-    global f
-    global maskF
-    global showMask
+            raw[i,j] = mask(model[i, j], frame[i, j])
+    erode = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (5, 5)))
+    # Setting global variable for click event (debuging)
     showMask = True
     m = model
     f = frame
     maskF = erode
+    showImage(const.WINDOW_NAME, erode)
+    cv.setMouseCallback(const.WINDOW_NAME, click_event)
 
-    while True:
-        #Get mouseinput
-        cv.setMouseCallback(const.WINDOW_NAME, click_event)
-        cv.waitKey(100)
-        try:
-            cv.getWindowProperty(const.WINDOW_NAME, 0)
-        except:
-            break
+    contours, _ = cv.findContours(erode, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
+    big_blobs = []
+
+    if len(contours) > 0:
+        for i in range(len(contours)):
+            contour_area = cv.contourArea(contours[i]);
+            if contour_area > 5000:
+                big_blobs.append(i)
+
+    res = np.zeros(shape=[l, c], dtype=np.uint8)
+    for i in range(len(big_blobs)):
+        res = cv.drawContours(res, contours, big_blobs[i], 255, cv.FILLED, 8)
+
+    maskF = res
+    # Show keypoints
+    showImage(const.WINDOW_NAME, res, 0)
+
+    print("THE END")
+
 
 if __name__ == "__main__":
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
