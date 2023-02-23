@@ -90,6 +90,7 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False, camera = None)
         ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, cv.CALIB_CB_FAST_CHECK)
     else:
         #ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, None)
+        print("F")
         imgpoints, objpoints, corners = pickCorners([],[],objp,frame,gray,criteria, False)
         ret = True
 
@@ -107,6 +108,10 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False, camera = None)
 
 def pickCorners(imgpoints, objpoints, objp, img, gray, criteria, showLines = True):
     showImage(const.WINDOW_NAME, img)
+    global counter
+    global clickPoints
+    counter = 0
+    clickPoints = []
     while(counter < 4):
         #Get mouseinput
         #the mouse clicking should be done by starting at the bottom right black corner in a horizontally rotated chessboard. If the chessboard
@@ -335,6 +340,6 @@ def main(currentCam):
 
 
 if __name__ == "__main__":
-    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-    for i in range(4):
+    camArray = [const.CAM3]
+    for i in range(1):
         main(camArray[i])
