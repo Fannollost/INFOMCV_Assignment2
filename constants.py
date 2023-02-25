@@ -11,7 +11,7 @@ BLUE   = (0,0,255)
 
 #board properties
 BOARD_SIZE = (8,6)
-SQUARE_SIZE = 1150
+SQUARE_SIZE = 115
 
 #window properties
 WINDOW_NAME = 'img'
