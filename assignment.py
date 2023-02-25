@@ -40,11 +40,9 @@ def getDataFromXml(filePath, nodeName):
         retData.append(float(data[i]))
     return retData
 
-
+# Generates dummy camera locations at the 4 corners of the room
+# TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.
 def get_cam_positions():
-
-    # Generates dummy camera locations at the 4 corners of the room
-    # TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     cam_positions = []
     for i in range(len(camArray)):
@@ -53,35 +51,25 @@ def get_cam_positions():
         #rotationMatrix = rotationMatrix * [[1,0,0],[0,-1,0],[0,0,-1]]
         tvec = getDataFromXml(camArray[i][0] + 'data.xml', 'TVecs')
         camPos = -np.matrix(rotationMatrix).T * np.matrix(np.array(tvec).astype(np.float32)).T
-        cam_positions.append(camPos)
+        cam_positions.append([camPos[0], -camPos[2], camPos[1]])
     return cam_positions
 
-
+# Generates dummy camera rotation matrices, looking down 45 degrees towards the center of the room
+# TODO: You need to input the estimated camera rotation matrices (4x4) of the 4 cameras in the world coordinates.
 def get_cam_rotation_matrices():
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     cam_rotations = []
     for i in range(len(camArray)):
         rvec = getDataFromXml(camArray[i][0] + '/data.xml', 'RVecs')
         rotationMatrix = cv.Rodrigues(np.array(rvec).astype(np.float32))[0]
-        cam_rotations.append(glm.mat4(rotationMatrix))
+        rotationMatrix = rotationMatrix.transpose()
+        rotationMatrix = [rotationMatrix[0], rotationMatrix[2], rotationMatrix[1]]
+        cam_rotations.append(glm.mat4(np.matrix(rotationMatrix).T))
     print("F:")
     print(cam_rotations)
-    # Generates dummy camera rotation matrices, looking down 45 degrees towards the center of the room
-    # TODO: You need to input the estimated camera rotation matrices (4x4) of the 4 cameras in the world coordinates.
-    #cam_angles = [[0, 45, -45], [0, 135, -45], [0, 225, -45], [0, 315, -45]]
-    #for c in range(len(cam_rotations)):
-    #    cam_rotations[c] = glm.rotate(cam_rotations[c], np.pi / 180, [1, 0, 0])
-    #    cam_rotations[c] = glm.rotate(cam_rotations[c], np.pi / 180, [0, 1, 0])
-    #    cam_rotations[c] = glm.rotate(cam_rotations[c], np.pi / 180, [0, 0, 1])
-    #return cam_rotations
-    cam_angles = [[0, 45, -45], [0, 135, -45], [0, 225, -45], [0, 315, -45]]
-    #cam_rotations = [glm.mat4(1), glm.mat4(1), glm.mat4(1), glm.mat4(1)]
-    print("A:")
-    print(cam_rotations)
+
     for c in range(len(cam_rotations)):
-        cam_rotations[c] = glm.rotate(cam_rotations[c], 1, [1, 0, 0])
-        cam_rotations[c] = glm.rotate(cam_rotations[c], 1, [0, 1, 0])
-        cam_rotations[c] = glm.rotate(cam_rotations[c], 1, [0, 0, 1])
+        cam_rotations[c] = glm.rotate(cam_rotations[c], -np.pi/2 , [0, 1, 0])
     return cam_rotations
     
 get_cam_rotation_matrices()

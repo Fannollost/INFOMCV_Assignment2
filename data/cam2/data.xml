@@ -7,10 +7,10 @@
 0.0012027548606610148
 -6.556988101590787e-05
 -0.024075322812462344
-</data></DistortionCoeffs><RVecs type_id="opencv-matrix"><rows>3</rows><cols>1</cols><dt>f</dt><data>-1.6364081683347405
-0.05100648962646928
-0.03909669786013571
-</data></RVecs><TVecs type_id="opencv-matrix"><rows>3</rows><cols>1</cols><dt>f</dt><data>-1.4751688749999934
-13.660172795819294
-31.125148551989895
+</data></DistortionCoeffs><RVecs type_id="opencv-matrix"><rows>3</rows><cols>1</cols><dt>f</dt><data>-1.631614486519196
+0.05124154405750979
+0.03993934572603695
+</data></RVecs><TVecs type_id="opencv-matrix"><rows>3</rows><cols>1</cols><dt>f</dt><data>-1.4713827541138875
+13.640833788914176
+31.135781976394256
 </data></TVecs></opencv_storage>
