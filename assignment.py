@@ -16,18 +16,6 @@ def generate_grid(width, depth):
             data.append([x*block_size - width/2, -block_size, z*block_size - depth/2])
     return data
 
-
-def set_voxel_positions(width, height, depth):
-    # Generates random voxel locations
-    # TODO: You need to calculate proper voxel arrays instead of random ones.
-    data = []
-    for x in range(width):
-        for y in range(height):
-            for z in range(depth):
-                if random.randint(0, 1000) < 5:
-                    data.append([x*block_size - width/2, y*block_size, z*block_size - depth/2])
-    return data
-
 def getDataFromXml(filePath, nodeName):
     tree = ET.parse(filePath)
     root = tree.getroot()
@@ -37,8 +25,54 @@ def getDataFromXml(filePath, nodeName):
     data = data.split('\n')
     retData = []
     for i in range(len(data) - 1):
-        retData.append(float(data[i]))
-    return retData
+        lineData = data[i].split(' ')
+        if len(lineData) > 1:
+            lineRes = []
+            for j in range(len(lineData)):
+                lineRes.append(float(lineData[j]))
+            retData.append(lineRes)
+        else:
+            retData.append(float(data[i]))
+    return np.array(retData)
+
+#Generate a Voxel world from camera informations
+# TODO: You need to calculate proper voxel arrays instead of random ones.
+def set_voxel_positions(width, height, depth):
+    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
+
+    camParams =[]
+    for cam in camArray:
+        camPath = cam[0]
+        foreground = cv.imread(camPath + "foreground.png", cv.IMREAD_GRAYSCALE)
+        rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
+        tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
+        cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
+        distCoeffs = getDataFromXml(camPath + 'data.xml', 'DistortionCoeffs')
+        params  = dict(rvec = rvec, tvec = tvec, cameraMatrix = cameraMatrix, distCoeffs = distCoeffs, foreground = foreground)
+        camParams.append(params)
+    data = []
+    for x in range(width):
+        print("X : "+str(x) + " / " + str(width))
+        for y in range(height):
+            for z in range(depth):
+                isOn = True
+                for i in range(len(camArray)):
+                    params = camParams[i]
+                    imagepoints, _ = cv.projectPoints((x,y,z), params["rvec"], params["tvec"], params["cameraMatrix"], params["distCoeffs"])
+                    imagepoints = np.reshape(imagepoints, 2)
+                    (heightIm, widthIm) = params["foreground"].shape
+                    if 0 <= imagepoints[0] < heightIm and 0 <= imagepoints[1] < widthIm:
+                        pixVal = foreground[int(imagepoints[0]), int(imagepoints[1])]
+                        if pixVal == 0:
+                            isOn = False
+                    else :
+                        isOn = False
+                if isOn:
+                    data.append([x * block_size - width / 2, y * block_size, z * block_size - depth / 2])
+
+
+
+    return data
 
 # Generates dummy camera locations at the 4 corners of the room
 # TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.

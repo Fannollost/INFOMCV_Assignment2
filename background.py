@@ -150,6 +150,7 @@ def substractBackground(camera, videoType, model):
     maskF = res
     # Show keypoints
     showImage(const.WINDOW_NAME, res, 0)
+    cv.imwrite(camera+"foreground.png", res)
 
 
 if __name__ == "__main__":
