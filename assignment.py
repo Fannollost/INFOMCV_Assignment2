@@ -63,8 +63,8 @@ def set_voxel_positions(width, height, depth):
                     (heightIm, widthIm) = params["foreground"].shape
                     if 0 <= imagepoints[0] < heightIm and 0 <= imagepoints[1] < widthIm:
                         pixVal = foreground[int(imagepoints[0]), int(imagepoints[1])]
-                        # if pixVal == 0:
-                        #     isOn = False
+                        if pixVal == 0:
+                            isOn = False
                     else :
                         isOn = False
                 if isOn:

@@ -305,7 +305,7 @@ def main(currentCam):
                 corners2 = cv.cornerSubPix(gray,corners,(5,5), (-1,-1), criteria)
 
                 imgpoints.append(corners2)
-                objpoints.append(objp*const.SQUARE_SIZE)
+                objpoints.append(objp)
 
                 # Draw and display the corners
                 cv.drawChessboardCorners(img, const.BOARD_SIZE, corners2, ret)
