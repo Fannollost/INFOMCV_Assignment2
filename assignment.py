@@ -56,11 +56,12 @@ def set_voxel_positions(width, height, depth):
         for y in range(height):
             for z in range(depth):
                 isOn = True
-                for i in range(len(camArray)):
+                for i in range(1):
                     params = camParams[i]
                     imagepoints, _ = cv.projectPoints((x,y,z), params["rvec"], params["tvec"], params["cameraMatrix"], params["distCoeffs"])
                     imagepoints = np.reshape(imagepoints, 2)
                     (heightIm, widthIm) = params["foreground"].shape
+                    foreground = params["foreground"]
                     if 0 <= imagepoints[0] < heightIm and 0 <= imagepoints[1] < widthIm:
                         pixVal = foreground[int(imagepoints[0]), int(imagepoints[1])]
                         if pixVal == 0:
@@ -69,6 +70,8 @@ def set_voxel_positions(width, height, depth):
                         isOn = False
                 if isOn:
                     data.append([x * block_size - width / 2, y * block_size, z * block_size - depth / 2])
+
+                    
     return data
 
 # Generates dummy camera locations at the 4 corners of the room
@@ -103,4 +106,4 @@ def get_cam_rotation_matrices():
         cam_rotations[c] = glm.rotate(cam_rotations[c], -np.pi/2 , [0, 1, 0])
     return cam_rotations
     
-get_cam_rotation_matrices()
+get_cam_positions()

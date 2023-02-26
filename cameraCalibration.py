@@ -301,7 +301,7 @@ def main(currentCam):
                 continue
 
             #if found, add object points, image points (after refining them)
-            if ret == True:
+            #if ret == True:
                 corners2 = cv.cornerSubPix(gray,corners,(5,5), (-1,-1), criteria)
 
                 imgpoints.append(corners2)

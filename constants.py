@@ -11,7 +11,7 @@ BLUE   = (0,0,255)
 
 #board properties
 BOARD_SIZE = (8,6)
-SQUARE_SIZE = 11
+SQUARE_SIZE = 11.5
 #SQUARE_SIZE = 115
 
 #window properties
@@ -54,7 +54,7 @@ VIDEO_BACKGROUND = 'background.avi'
 VIDEO_TEST = 'video.avi'
 SELECTED_VIDEO = VIDEO_INTRINSICS
 INTRINSICS_DATA = 'intrinsics.xml'
-IMAGES_CALIB_NB = 10
+IMAGES_CALIB_NB = 5
 IMAGES_BACKGROUND_NB = 25
 H = 0
 S = 1
