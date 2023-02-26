@@ -30,7 +30,7 @@ IMAGES_PATH_TEST_SELECTION = './pics/testingSet/selection*.jpg'
 IMAGES_PATH_TEST_SUB_SELECTION = './pics/testingSet/selection_sub*.jpg'
 
 #worldcoordinates indicators
-AXIS = np.float32([[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
+AXIS = SQUARE_SIZE * np.float32( [[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
 CUBE_AXIS = np.float32([[0,0,0], [0,1,0], [1,1,0], [1,0,0],
                    [0,0,-1],[0,1,-1],[1,1,-1],[1,0,-1] ])
 

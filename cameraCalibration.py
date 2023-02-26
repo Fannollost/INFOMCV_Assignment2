@@ -25,7 +25,7 @@ def draw(img, corners, imgpts):
 
 #Draws the cube on the board
 def drawCube(img, corners, imgpts):
-    imgpts = (const.SQUARE_SIZE*np.int32(imgpts)).reshape(-1,2)
+    imgpts = (np.int32(imgpts)).reshape(-1,2)
     # draw ground floor in green
     img = cv.drawContours(img, [imgpts[:4]],-1,(0,255,0),-2)
     # draw pillars in blue color
@@ -177,7 +177,7 @@ def pickCorners(imgpoints, objpoints, objp, img, gray, criteria, showLines = Tru
         return imgpoints, objpoints, corners2
     
     imgpoints.append(corners2)
-    objpoints.append(objp*const.SQUARE_SIZE)
+    objpoints.append(objp)
     # Draw and display the corners
     if(showLines):
         cv.drawChessboardCorners(img, const.BOARD_SIZE, corners2, True)
@@ -272,7 +272,7 @@ def main(currentCam):
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objp = np.zeros((const.BOARD_SIZE[0]*const.BOARD_SIZE[1],3), np.float32)
-    objp[:,:2] = np.mgrid[0:const.BOARD_SIZE[0], 0:const.BOARD_SIZE[1]].T.reshape(-1,2)
+    objp[:,:2] = (const.SQUARE_SIZE * np.mgrid[0:const.BOARD_SIZE[0], 0:const.BOARD_SIZE[1]]).T.reshape(-1,2)
     #if no configuration file is found, or if calibration is forced, calibrate the camera
     #need to check if config is done!
     if(const.FORCE_CALIBRATION):

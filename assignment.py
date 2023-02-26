@@ -69,9 +69,6 @@ def set_voxel_positions(width, height, depth):
                         isOn = False
                 if isOn:
                     data.append([x * block_size - width / 2, y * block_size, z * block_size - depth / 2])
-
-
-
     return data
 
 # Generates dummy camera locations at the 4 corners of the room
