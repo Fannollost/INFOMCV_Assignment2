@@ -18,9 +18,9 @@ def draw(img, corners, imgpts):
     dest1 = tuple(imgpts[0].ravel())
     dest2 = tuple(imgpts[1].ravel())
     dest3 = tuple(imgpts[2].ravel())
-    img = cv.line(img, pt1, (int(dest1[0]),int(dest1[1])), (255,0,0), 3)
-    img = cv.line(img, pt1, (int(dest2[0]),int(dest2[1])), (0,255,0), 3)
-    img = cv.line(img, pt1, (int(dest3[0]),int(dest3[1])), (0,0,255), 3)
+    img = cv.line(img, pt1, (int(dest1[0]),int(dest1[1])), (255,0,0), 2)
+    img = cv.line(img, pt1, (int(dest2[0]),int(dest2[1])), (0,255,0), 2)
+    img = cv.line(img, pt1, (int(dest3[0]),int(dest3[1])), (0,0,255), 2)
     return img
 
 #Draws the cube on the board
@@ -89,10 +89,10 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False, camera = None)
     if webcam :
         ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, cv.CALIB_CB_FAST_CHECK)
     else:
-        #ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, None)
-        print("F")
-        imgpoints, objpoints, corners = pickCorners([],[],objp,frame,gray,criteria, False)
-        ret = True
+        ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, None)
+        if not ret :
+            imgpoints, objpoints, corners = pickCorners([],[],objp,frame,gray,criteria, False)
+            ret = True
 
     if (ret == True):
         corners2 = cv.cornerSubPix(gray, corners, (5, 5), (-1, -1), criteria)
@@ -100,7 +100,7 @@ def drawOrigin(frame, criteria, objp, mtx, dist , webcam = False, camera = None)
         imgpts, jac = cv.projectPoints(const.AXIS, rvecs, tvecs, mtx, dist)
         cubeimgpts, jac = cv.projectPoints(const.CUBE_AXIS, rvecs, tvecs, mtx, dist)
         img = draw(frame, corners2, imgpts)
-        #img = drawCube(img, corners2, cubeimgpts)
+        img = drawCube(img, corners2, cubeimgpts)
         saveCalibration(mtx,dist,rvecs,tvecs, camera)
         return img
     else:
@@ -169,15 +169,15 @@ def pickCorners(imgpoints, objpoints, objp, img, gray, criteria, showLines = Tru
     corners2 = cv.perspectiveTransform(interpolatedPoints, transform_mat)
     corners2 = np.array(corners2).reshape(const.BOARD_SIZE[0]*const.BOARD_SIZE[1],1,2).astype(np.float32)
 
-    edges = cv.Canny(img, 150, 400)
-    corners2 = cv.cornerSubPix(edges,corners2,(5,5), (-1,-1), criteria)
+    edges = cv.Canny(img, 150, 250)
+    corners2 = cv.cornerSubPix(edges,corners2,(5, 5), (-1,-1), criteria)
 
-    if not checkQuality(gray, corners2, 5) and const.REJECT_LOW_QUALITY:
-        #print("Rejected Image: " + str(fname))
-        return imgpoints, objpoints
+    if not checkQuality(gray, corners2, 4) and const.REJECT_LOW_QUALITY:
+        print("Image Rejected")
+        return imgpoints, objpoints, corners2
     
     imgpoints.append(corners2)
-    objpoints.append(objp)
+    objpoints.append(objp*const.SQUARE_SIZE)
     # Draw and display the corners
     if(showLines):
         cv.drawChessboardCorners(img, const.BOARD_SIZE, corners2, True)
@@ -296,8 +296,8 @@ def main(currentCam):
             ret, corners = cv.findChessboardCorners(gray, const.BOARD_SIZE, None)
 
             #reject the low quality images
-            if ret and not checkQuality(gray, corners, 3) and const.REJECT_LOW_QUALITY:
-                #print("Rejected Image: " + str(fname))
+            if ret and not checkQuality(gray, corners, 5) and const.REJECT_LOW_QUALITY:
+                print("Image Rejected")
                 continue
 
             #if found, add object points, image points (after refining them)
@@ -305,7 +305,7 @@ def main(currentCam):
                 corners2 = cv.cornerSubPix(gray,corners,(5,5), (-1,-1), criteria)
 
                 imgpoints.append(corners2)
-                objpoints.append(objp) 
+                objpoints.append(objp*const.SQUARE_SIZE)
 
                 # Draw and display the corners
                 cv.drawChessboardCorners(img, const.BOARD_SIZE, corners2, ret)

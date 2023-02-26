@@ -37,7 +37,7 @@ CUBE_AXIS = np.float32([[0,0,0], [0,1,0], [1,1,0], [1,0,0],
 #settings
 WEBCAM = False
 FORCE_CALIBRATION = True
-REJECT_LOW_QUALITY = False
+REJECT_LOW_QUALITY = True
 
 #video paths
 CAM1 = ("./data/cam1/",(8,6))
@@ -53,7 +53,7 @@ VIDEO_BACKGROUND = 'background.avi'
 VIDEO_TEST = 'video.avi'
 SELECTED_VIDEO = VIDEO_INTRINSICS
 INTRINSICS_DATA = 'intrinsics.xml'
-IMAGES_CALIB_NB = 5
+IMAGES_CALIB_NB = 15
 IMAGES_BACKGROUND_NB = 25
 H = 0
 S = 1
