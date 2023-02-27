@@ -53,22 +53,26 @@ def set_voxel_positions(width, height, depth):
     data = []
     for x in range(width):
         print(str(100*(x+1)/width) + " %")
-        for y in range(height):
-            for z in range(depth):
+        for y in range(depth):
+            for z in range(height):
                 isOn = True
                 for i in range(len(camArray)):
                     params = camParams[i]
-                    imagepoints, _ = cv.projectPoints((x,y,z), params["rvec"], params["tvec"], params["cameraMatrix"], params["distCoeffs"])
+                    coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
+                    imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
+                                                      params["distCoeffs"])
                     imagepoints = np.reshape(imagepoints, 2)
-                    (heightIm, widthIm) = params["foreground"].shape
+                    imagepoints = imagepoints[::-1]
+                    foreground = params["foreground"]
+                    (heightIm, widthIm) = foreground.shape
                     if 0 <= imagepoints[0] < heightIm and 0 <= imagepoints[1] < widthIm:
                         pixVal = foreground[int(imagepoints[0]), int(imagepoints[1])]
                         if pixVal == 0:
-                            isOn = False
-                    else :
+                           isOn = False
+                    else:
                         isOn = False
                 if isOn:
-                    data.append([x * block_size - width / 2, y * block_size, z * block_size - depth / 2])
+                    data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2 ])
     return data
 
 # Generates dummy camera locations at the 4 corners of the room
@@ -82,7 +86,8 @@ def get_cam_positions():
         #rotationMatrix = rotationMatrix * [[1,0,0],[0,-1,0],[0,0,-1]]
         tvec = getDataFromXml(camArray[i][0] + 'data.xml', 'TVecs')
         camPos = -np.matrix(rotationMatrix).T * np.matrix(np.array(tvec).astype(np.float32)).T
-        cam_positions.append([camPos[0], -camPos[2], camPos[1]])
+        print([camPos[0], camPos[1], camPos[2]])
+        cam_positions.append([camPos[0]/const.SCENE_SCALE_DIV, -camPos[2]/const.SCENE_SCALE_DIV, camPos[1]/const.SCENE_SCALE_DIV])
     return cam_positions
 
 # Generates dummy camera rotation matrices, looking down 45 degrees towards the center of the room
