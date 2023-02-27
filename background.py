@@ -5,6 +5,8 @@ import constants as const
 import numpy as np
 from cameraCalibration import getImagesFromVideo, showImage
 
+models = []
+
 class Stats(object):
     """
     Welford's algorithm computes variance and mean online
@@ -101,7 +103,8 @@ def getAxisAlignedCross(size):
             if i == l or j == c:
                 res[i,j] = 1
     return res
-def substractBackground(camera, videoType, model):
+
+def substractBackground(camera, videoType, model, frame):
     video = cv.VideoCapture(camera + videoType)
     frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
     c = int(video.get(cv.CAP_PROP_FRAME_WIDTH ))
@@ -114,7 +117,7 @@ def substractBackground(camera, videoType, model):
     global showMask
 
     # for fc in range(frameCount):
-    video.set(cv.CAP_PROP_POS_FRAMES, 0)
+    video.set(cv.CAP_PROP_POS_FRAMES, frame)
     ret, frame = video.read()
     frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     for i in range(l):
@@ -130,8 +133,8 @@ def substractBackground(camera, videoType, model):
     f = frame
     maskF = raw
     showMask = True
-    showImage(const.WINDOW_NAME, raw)
-    cv.setMouseCallback(const.WINDOW_NAME, click_event)
+    #showImage(const.WINDOW_NAME, raw)
+    #cv.setMouseCallback(const.WINDOW_NAME, click_event)
 
     contours, _ = cv.findContours(raw, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
     big_blobs = []
@@ -149,14 +152,22 @@ def substractBackground(camera, videoType, model):
     res = cv.bitwise_and(res, raw)
     maskF = res
     # Show keypoints
-    showImage(const.WINDOW_NAME, res, 0)
-    cv.imwrite(camera+"foreground.png", res)
+    #showImage(const.WINDOW_NAME, res, 0)
+    return res
+    #cv.imwrite(camera+"foreground.png", res)
 
+def get_foreground_mask(camera, frame):
+    res = substractBackground(camera[0], const.VIDEO_TEST, models[camera[2]], frame)
+    return res
 
+def get_background_model(camera):
+    model = backgroundModel(camera[0], const.VIDEO_BACKGROUND)
+    models.append(model)
+    
 if __name__ == "__main__":
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     for i in range(4):
         print(str(i))
         model = backgroundModel(camArray[i][0], const.VIDEO_BACKGROUND)
-        substractBackground(camArray[i][0], const.VIDEO_TEST, model)
+        substractBackground(camArray[i][0], const.VIDEO_TEST, model, 0)
     print("THE END")

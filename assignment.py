@@ -4,8 +4,15 @@ import numpy as np
 import xml.etree.ElementTree as ET
 import constants as const
 import cv2 as cv
+from engine.config import config
+from background import get_background_model, get_foreground_mask
+
 block_size = 1.0
 
+global tables
+global tableInitalized
+tables = [0,0,0,0]
+tableInitialized = False
 
 def generate_grid(width, depth):
     # Generates the floor grid locations
@@ -37,19 +44,25 @@ def getDataFromXml(filePath, nodeName):
 
 #Generate a Voxel world from camera informations
 # TODO: You need to calculate proper voxel arrays instead of random ones.
-def set_voxel_positions(width, height, depth):
+def set_voxel_positions(width, height, depth, frame):
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-
+    global tables
+    global tableInitialized
     camParams =[]
     for cam in camArray:
+        if tableInitialized == False:
+            tables[cam[2]] = np.full(shape = (config['world_width'],config['world_height'],config['world_depth'], 2), fill_value= [-1,-1])
+            get_background_model(cam)
+
         camPath = cam[0]
-        foreground = cv.imread(camPath + "foreground.png", cv.IMREAD_GRAYSCALE)
+        foreground = get_foreground_mask(cam, frame)
         rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
         tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
         cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
         distCoeffs = getDataFromXml(camPath + 'data.xml', 'DistortionCoeffs')
         params  = dict(rvec = rvec, tvec = tvec, cameraMatrix = cameraMatrix, distCoeffs = distCoeffs, foreground = foreground)
         camParams.append(params)
+    print(frame)
     data = []
     for x in range(width):
         print(str(100*(x+1)/width) + " %")
@@ -58,11 +71,19 @@ def set_voxel_positions(width, height, depth):
                 isOn = True
                 for i in range(len(camArray)):
                     params = camParams[i]
-                    coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
-                    imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
-                                                      params["distCoeffs"])
-                    imagepoints = np.reshape(imagepoints, 2)
-                    imagepoints = imagepoints[::-1]
+                    table = tables[i]
+                    imagepoints = []
+
+                    if(tableInitialized == False):
+                        coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
+                        imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
+                                                    params["distCoeffs"])
+                        imagepoints = np.reshape(imagepoints, 2)
+                        imagepoints = imagepoints[::-1]
+                        table[x,y,z] = imagepoints
+                    else:
+                        imagepoints = table[x,y,z]
+
                     foreground = params["foreground"]
                     (heightIm, widthIm) = foreground.shape
                     if 0 <= imagepoints[0] < heightIm and 0 <= imagepoints[1] < widthIm:
@@ -73,6 +94,7 @@ def set_voxel_positions(width, height, depth):
                         isOn = False
                 if isOn:
                     data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2 ])
+    tableInitialized = True
     return data
 
 # Generates dummy camera locations at the 4 corners of the room

@@ -40,10 +40,10 @@ FORCE_CALIBRATION = True
 REJECT_LOW_QUALITY = True
 
 #video paths
-CAM1 = ("./data/cam1/",(8,6))
-CAM2 = ("./data/cam2/",(8,6))
-CAM3 = ("./data/cam3/",(8,6))
-CAM4 = ("./data/cam4/",(8,6))
+CAM1 = ("./data/cam1/",(8,6), 0)
+CAM2 = ("./data/cam2/",(8,6), 1)
+CAM3 = ("./data/cam3/",(8,6), 2)
+CAM4 = ("./data/cam4/",(8,6), 3)
 SELECTED_CAM = CAM2
 
 #videos

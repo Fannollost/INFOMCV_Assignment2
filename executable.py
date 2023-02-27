@@ -11,6 +11,7 @@ from engine.camera import Camera
 from engine.config import config
 
 cube, hdrbuffer, blurbuffer, lastPosX, lastPosY = None, None, None, None, None
+frame = 0
 firstTime = True
 window_width, window_height = config['window_width'], config['window_height']
 camera = Camera(glm.vec3(0, 100, 0), pitch=-90, yaw=0, speed=40)
@@ -44,12 +45,12 @@ def draw_objs(obj, program, perspective, light_pos, texture, normal, specular, d
 
 
 def main():
-    global hdrbuffer, blurbuffer, cube, window_width, window_height
+    global hdrbuffer, blurbuffer, cube, window_width, window_height, frame
 
     if not glfw.init():
         print('Failed to initialize GLFW.')
         return
-
+    
     glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
@@ -156,9 +157,13 @@ def main():
         hdrbuffer.finalize()
 
         bloom.draw_processed_scene()
-
+        if(frame != 0):
+            positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'], frame)
+            cube.set_multiple_positions(positions)
+            frame += 1
         glfw.poll_events()
         glfw.swap_buffers(window)
+       
 
     glfw.terminate()
 
@@ -178,9 +183,12 @@ def key_callback(window, key, scancode, action, mods):
     if key == glfw.KEY_ESCAPE and action == glfw.PRESS:
         glfw.set_window_should_close(window, glfw.TRUE)
     if key == glfw.KEY_G and action == glfw.PRESS:
-        global cube
-        positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'])
+        global cube, frame
+        frame = 0
+        positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'], 0)
         cube.set_multiple_positions(positions)
+        #remove this inorder to not render it everyframe again.
+        #frame += 1
 
 
 def mouse_move(win, pos_x, pos_y):
