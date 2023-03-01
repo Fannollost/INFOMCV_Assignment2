@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import constants as const
 import cv2 as cv
 from engine.config import config
-from background import get_background_model, get_foreground_mask
+from background import get_background_model, get_foreground_mask, get_difference
 
 block_size = 1.0
 
@@ -13,6 +13,11 @@ global tables
 global tableInitalized
 tables = [0,0,0,0]
 tableInitialized = False
+
+global imgTables
+global imgTablesInitialized
+imgTables = [0,0,0,0]
+imgTablesInitialized = False
 
 def generate_grid(width, depth):
     # Generates the floor grid locations
@@ -97,6 +102,59 @@ def set_voxel_positions(width, height, depth, frame):
     tableInitialized = True
     return data
 
+def set_voxel_positions_xor(width,height,depth,frame, data):
+    #calculate difference in background extraction
+    global imgTables, imgTablesInitialized
+    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
+    width = 486
+    height = 644
+    camParams =[]
+    for cam in camArray:
+        camPath = cam[0]
+        if imgTablesInitialized == False:
+            imgTables[cam[2]] = np.full(shape = (644, 486, 3), fill_value= [-1,-1,-1])
+            #get_background_model(cam)
+        #foreground = get_foreground_mask(cam, frame)
+        rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
+        tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
+        cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
+        distCoeffs = getDataFromXml(camPath + 'data.xml', 'DistortionCoeffs')
+        params  = dict(rvec = rvec, tvec = tvec, cameraMatrix = cameraMatrix, distCoeffs = distCoeffs)
+        camParams.append(params)  
+    
+    if imgTablesInitialized == False:
+        #hardcoded ewl
+        for i in range(len(camArray)):
+            for x in range(height):
+                for y in range(width):
+                    undistortedPoint = cv.undistortPoints((x,y), cameraMatrix, distCoeffs)
+                    convertedPoint = cv.convertPointsToHomogeneous(undistortedPoint)
+                    convertedPoint = convertedPoint.ravel()
+                    table = imgTables[i]
+                    table[x,y] = [convertedPoint[0] * block_size - width / 2, convertedPoint[2] * block_size , convertedPoint[1] * block_size - depth / 2]
+
+        imgTablesInitialized = True
+
+    newVoxelsOn = []
+    newVoxelsOff = []
+    for cam in camArray:
+        pixelsOff, pixelsOn, res = get_difference(cam,frame)
+        table = imgTables[i]
+        pixelsOn = [table[coord[0],coord[1]] for coord in pixelsOn]
+        pixelsOff = [table[coord[0],coord[1]] for coord in pixelsOff]
+        pixelsOn = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in pixelsOn]
+        pixelsOff = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in pixelsOff]
+        if newVoxelsOn == []:
+            newVoxelsOn.append(pixelsOn)
+        else:
+            newVoxelsOn = [i for i in pixelsOn if i in newVoxelsOn]
+        
+        newVoxelsOff.append(pixelsOff)
+    
+    data = [i for i in data if i not in newVoxelsOff]
+    data.append(newVoxelsOn)
+    return data
+
 # Generates dummy camera locations at the 4 corners of the room
 # TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.
 def get_cam_positions():
@@ -129,5 +187,3 @@ def get_cam_rotation_matrices():
     for c in range(len(cam_rotations)):
         cam_rotations[c] = glm.rotate(cam_rotations[c], -np.pi/2 , [0, 1, 0])
     return cam_rotations
-    
-get_cam_rotation_matrices()
