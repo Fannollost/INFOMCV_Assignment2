@@ -160,8 +160,8 @@ def main():
 
         if(frame != 0):
             print("s")
-            positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'],frame)
-            #positions = set_voxel_positions_xor(config['world_width'], config['world_height'], config['world_width'],frame)
+            #positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'],frame)
+            positions = set_voxel_positions_xor(config['world_width'], config['world_height'], config['world_width'],frame)
             cube.set_multiple_positions(positions)
             frame += 1
             print("f")
@@ -193,7 +193,7 @@ def key_callback(window, key, scancode, action, mods):
         positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'], 0)
         cube.set_multiple_positions(positions)
         #remove this inorder to  render it every frame again for videos.
-        #frame = 1
+        frame = 1
         print("FRAME NU")
         print(frame)
 

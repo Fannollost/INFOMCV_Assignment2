@@ -77,9 +77,11 @@ def set_voxel_positions(width, height, depth, frame):
         print(str(100*(x+1)/width) + " %")
         for y in range(depth):
             for z in range(height):
+                isOn = True
                 for i in range(len(camArray)):
                     params = camParams[i]
-                    table = tables[cam[2]]
+                    table = tables[i]
+                    imgpoints = []
                     if(tableInitialized == False):
                         coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
                         imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
@@ -99,9 +101,9 @@ def set_voxel_positions(width, height, depth, frame):
                     else:
                         isOn = False
                 if isOn:
-                    data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2 ])
+                    data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2])
     tableInitialized = True
-    print(data)
+    data = np.array(data)
     prevPositions = data
     return data
 
@@ -152,15 +154,14 @@ def set_voxel_positions_xor(width,height,depth,frame):
         if newVoxelsOn == []:
             newVoxelsOn.append(onVoxels)
         else:
-            newVoxelsOn = [i for i in pixelsOn if i in newVoxelsOn]
+            newVoxelsOn = [i for i in onVoxels if i in newVoxelsOn]
         
         newVoxelsOff.append(offVoxels)
-    print("F")
-    print(prevPositions)
+        
+    newVoxelsOff = np.array(newVoxelsOff)
     data = [i for i in prevPositions if i not in newVoxelsOff]
-    data.append(newVoxelsOn)
-    print(data)
-    return data
+    pos = newVoxelsOn.append(data)
+    return pos
 
 # Generates dummy camera locations at the 4 corners of the room
 # TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.
