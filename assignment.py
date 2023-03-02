@@ -101,12 +101,13 @@ def set_voxel_positions(width, height, depth, frame):
                 if isOn:
                     data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2 ])
     tableInitialized = True
+    print(data)
     prevPositions = data
     return data
 
 def set_voxel_positions_xor(width,height,depth,frame):
     #calculate difference in background extraction
-    global imgTables, imgTablesInitialized, tables
+    global imgTables, imgTablesInitialized, tables, prevPositions
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     camParams =[]
     for cam in camArray:
@@ -154,7 +155,8 @@ def set_voxel_positions_xor(width,height,depth,frame):
             newVoxelsOn = [i for i in pixelsOn if i in newVoxelsOn]
         
         newVoxelsOff.append(offVoxels)
-    
+    print("F")
+    print(prevPositions)
     data = [i for i in prevPositions if i not in newVoxelsOff]
     data.append(newVoxelsOn)
     print(data)
