@@ -130,3 +130,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/data/cam1/foreground.png
+/data/cam2/foreground.png
+/data/cam3/foreground.png
+/data/cam4/foreground.png
+/data/cam1/
+/data/cam2/
+/data/cam3/
+/data/cam4/

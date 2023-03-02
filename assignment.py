@@ -6,8 +6,9 @@ import constants as const
 import cv2 as cv
 from engine.config import config
 from background import get_background_model, get_foreground_mask
+from marchingCube import marchingCube
 
-block_size = 1.0
+
 
 global tables
 global tableInitalized
@@ -20,7 +21,7 @@ def generate_grid(width, depth):
     data = []
     for x in range(width):
         for z in range(depth):
-            data.append([x*block_size - width/2, -block_size, z*block_size - depth/2])
+            data.append([x*const.BLOCK_SIZE - width/2, -const.BLOCK_SIZE, z*const.BLOCK_SIZE - depth/2])
     return data
 
 def getDataFromXml(filePath, nodeName):
@@ -64,6 +65,7 @@ def set_voxel_positions(width, height, depth, frame):
         camParams.append(params)
     print(frame)
     data = []
+    voxels = np.full(shape=(config['world_width'], config['world_height'], config['world_depth']), fill_value=False)
     for x in range(width):
         print(str(100*(x+1)/width) + " %")
         for y in range(depth):
@@ -93,8 +95,12 @@ def set_voxel_positions(width, height, depth, frame):
                     else:
                         isOn = False
                 if isOn:
-                    data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2 ])
+                    data.append([x * const.BLOCK_SIZE - width / 2, z * const.BLOCK_SIZE , y * const.BLOCK_SIZE - depth / 2])
+                    voxels[x,y,z] = True
     tableInitialized = True
+    print("Start Marching Cube")
+    marchingCube(voxels)
+    print("End Marching Cube")
     return data
 
 # Generates dummy camera locations at the 4 corners of the room

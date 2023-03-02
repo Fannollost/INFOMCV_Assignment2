@@ -63,3 +63,5 @@ S_WEIGHT = 4
 V_WEIGHT = 1 # This is shadow detection
 THRESHOLD = 160
 SCENE_SCALE_DIV = 40
+BLOCK_SIZE = 1.0
+FRAME_SIZE = 50
