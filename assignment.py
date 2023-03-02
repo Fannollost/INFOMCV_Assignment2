@@ -103,7 +103,6 @@ def set_voxel_positions(width, height, depth, frame):
                 if isOn:
                     data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2])
     tableInitialized = True
-    data = np.array(data)
     prevPositions = data
     return data
 
@@ -117,7 +116,6 @@ def set_voxel_positions_xor(width,height,depth,frame):
         if imgTablesInitialized == False:
             imgTables[cam[2]] = np.full(shape = (644, 486, 3), fill_value= [-1,-1,-1])
             #get_background_model(cam)
-        foreground = get_foreground_mask(cam, frame)
         rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
         tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
         cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
@@ -158,9 +156,11 @@ def set_voxel_positions_xor(width,height,depth,frame):
         
         newVoxelsOff.append(offVoxels)
         
-    newVoxelsOff = np.array(newVoxelsOff)
-    data = [i for i in prevPositions if i not in newVoxelsOff]
-    pos = newVoxelsOn.append(data)
+    for vox in newVoxelsOff:
+        if vox in prevPositions:
+            prevPositions.remove(vox)
+    
+    pos = prevPositions + newVoxelsOn
     return pos
 
 # Generates dummy camera locations at the 4 corners of the room
