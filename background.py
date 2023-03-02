@@ -40,20 +40,22 @@ def backgroundModel(camera, videoType):
     l = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
     res = np.empty((l, c, 3), dtype=object)
     frames = getImagesFromVideo(camera, videoType, const.IMAGES_BACKGROUND_NB)
-
     for i in range(l):
         for j in range(c):
             for k in range(3):
                 res[i, j, k] = Stats()
 
+    i = 0
     for frame in frames:
         frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         l,c,_ = frame.shape
+        print(str(100*(i+1)/len(frames)) + " %")
         for i in range(l):
             for j in range(c):
                 for k in range(3):
                     res[i,j,k].add(frame[i,j,k])
-
+        i +=1
+    print("Kk")
     return res
 
 def channelDist(model, val, dim):

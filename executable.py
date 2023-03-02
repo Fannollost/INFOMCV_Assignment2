@@ -15,7 +15,6 @@ frame = 0
 firstTime = True
 window_width, window_height = config['window_width'], config['window_height']
 camera = Camera(glm.vec3(0, 100, 0), pitch=-90, yaw=0, speed=40)
-positions = []
 
 def draw_objs(obj, program, perspective, light_pos, texture, normal, specular, depth):
     program.use()
@@ -45,7 +44,7 @@ def draw_objs(obj, program, perspective, light_pos, texture, normal, specular, d
 
 
 def main():
-    global hdrbuffer, blurbuffer, cube, window_width, window_height, frame, positions
+    global hdrbuffer, blurbuffer, cube, window_width, window_height, frame
 
     if not glfw.init():
         print('Failed to initialize GLFW.')
@@ -130,6 +129,7 @@ def main():
         if config['debug_mode']:
             print(glGetError())
 
+        positions = []
         current_time = glfw.get_time()
         delta_time = current_time - last_time
         last_time = current_time
@@ -161,7 +161,7 @@ def main():
         if(frame != 0):
             print("s")
             #positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'],frame)
-            positions = set_voxel_positions_xor(config['world_width'], config['world_height'], config['world_width'],frame,positions)
+            positions = set_voxel_positions_xor(config['world_width'], config['world_height'], config['world_width'],frame)
             cube.set_multiple_positions(positions)
             frame += 1
             print("f")

@@ -19,6 +19,9 @@ global imgTablesInitialized
 imgTables = [0,0,0,0]
 imgTablesInitialized = False
 
+global prevPositions
+prevPositions = []
+
 def generate_grid(width, depth):
     # Generates the floor grid locations
     # You don't need to edit this function
@@ -53,6 +56,7 @@ def set_voxel_positions(width, height, depth, frame):
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     global tables
     global tableInitialized
+    global prevPositions
     camParams =[]
     for cam in camArray:
         if tableInitialized == False:
@@ -73,12 +77,9 @@ def set_voxel_positions(width, height, depth, frame):
         print(str(100*(x+1)/width) + " %")
         for y in range(depth):
             for z in range(height):
-                isOn = True
                 for i in range(len(camArray)):
                     params = camParams[i]
-                    table = tables[i]
-                    imagepoints = []
-
+                    table = tables[cam[2]]
                     if(tableInitialized == False):
                         coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
                         imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
@@ -100,21 +101,20 @@ def set_voxel_positions(width, height, depth, frame):
                 if isOn:
                     data.append([x * block_size - width / 2, z * block_size , y * block_size - depth / 2 ])
     tableInitialized = True
+    prevPositions = data
     return data
 
-def set_voxel_positions_xor(width,height,depth,frame, data):
+def set_voxel_positions_xor(width,height,depth,frame):
     #calculate difference in background extraction
-    global imgTables, imgTablesInitialized
+    global imgTables, imgTablesInitialized, tables
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-    width = 486
-    height = 644
     camParams =[]
     for cam in camArray:
         camPath = cam[0]
         if imgTablesInitialized == False:
             imgTables[cam[2]] = np.full(shape = (644, 486, 3), fill_value= [-1,-1,-1])
             #get_background_model(cam)
-        #foreground = get_foreground_mask(cam, frame)
+        foreground = get_foreground_mask(cam, frame)
         rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
         tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
         cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
@@ -123,36 +123,41 @@ def set_voxel_positions_xor(width,height,depth,frame, data):
         camParams.append(params)  
     
     if imgTablesInitialized == False:
-        #hardcoded ewl
-        for i in range(len(camArray)):
-            for x in range(height):
-                for y in range(width):
-                    undistortedPoint = cv.undistortPoints((x,y), cameraMatrix, distCoeffs)
-                    convertedPoint = cv.convertPointsToHomogeneous(undistortedPoint)
-                    convertedPoint = convertedPoint.ravel()
-                    table = imgTables[i]
-                    table[x,y] = [convertedPoint[0] * block_size - width / 2, convertedPoint[2] * block_size , convertedPoint[1] * block_size - depth / 2]
-
+        print(str(width) + ' ' + str(height) + ' ' + str(depth))
+        
+        for cam in camArray:
+            for x in range(width):
+                for y in range(depth):
+                    for z in range(height):
+                        imgTable = imgTables[cam[2]]
+                        table = tables[cam[2]]
+                        correspondingPixel = table[x,y,z]
+                        heightIm = 644
+                        widthIm = 486
+                        if 0 <= correspondingPixel[0] < heightIm and 0 <= correspondingPixel[1] < widthIm:
+                            np.append(imgTable[correspondingPixel[0],correspondingPixel[1]], (x,y,z))
+            imgTables[cam[2]] = imgTable
         imgTablesInitialized = True
 
     newVoxelsOn = []
     newVoxelsOff = []
     for cam in camArray:
         pixelsOff, pixelsOn, res = get_difference(cam,frame)
-        table = imgTables[i]
-        pixelsOn = [table[coord[0],coord[1]] for coord in pixelsOn]
-        pixelsOff = [table[coord[0],coord[1]] for coord in pixelsOff]
-        pixelsOn = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in pixelsOn]
-        pixelsOff = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in pixelsOff]
+        table = imgTables[cam[2]]
+        voxelsOn = [table[coord[1],coord[0]] for coord in pixelsOn]
+        voxelsOff = [table[coord[1],coord[0]] for coord in pixelsOff]
+        onVoxels = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in voxelsOn]
+        offVoxels = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in voxelsOff]
         if newVoxelsOn == []:
-            newVoxelsOn.append(pixelsOn)
+            newVoxelsOn.append(onVoxels)
         else:
             newVoxelsOn = [i for i in pixelsOn if i in newVoxelsOn]
         
-        newVoxelsOff.append(pixelsOff)
+        newVoxelsOff.append(offVoxels)
     
-    data = [i for i in data if i not in newVoxelsOff]
+    data = [i for i in prevPositions if i not in newVoxelsOff]
     data.append(newVoxelsOn)
+    print(data)
     return data
 
 # Generates dummy camera locations at the 4 corners of the room
