@@ -8,12 +8,13 @@ from engine.config import config
 from background import get_background_model, get_foreground_mask, get_difference
 from marchingCube import marchingCube
 
-
-global tablesMr
+#initialize 'normal' lookup table
+global tables
 global tableInitalized
 tables = [0,0,0,0]
 tableInitialized = False
 
+#initialize the 'xor' lookup table
 global imgTables
 global imgTablesInitialized
 imgTables = [0,0,0,0]
@@ -31,6 +32,7 @@ def generate_grid(width, depth):
             data.append([x*const.BLOCK_SIZE - width/2, -const.BLOCK_SIZE, z*const.BLOCK_SIZE - depth/2])
     return data
 
+#function to retrieve our stored xml data
 def getDataFromXml(filePath, nodeName):
     tree = ET.parse(filePath)
     root = tree.getroot()
@@ -57,12 +59,16 @@ def set_voxel_positions(width, height, depth, frame):
     global tables
     global tableInitialized
     global prevPositions
-    camParams =[]
+    camParams = []
     for cam in camArray:
+        #initialize dummy data for the lookuptables
         if tableInitialized == False:
             tables[cam[2]] = np.full(shape = (config['world_width'],config['world_height'],config['world_depth'], 2), fill_value= [-1,-1])
+            
+            #train the background model
             get_background_model(cam)
 
+        #initialize camera parameters
         camPath = cam[0]
         foreground = get_foreground_mask(cam, frame)
         rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
@@ -71,8 +77,10 @@ def set_voxel_positions(width, height, depth, frame):
         distCoeffs = getDataFromXml(camPath + 'data.xml', 'DistortionCoeffs')
         params  = dict(rvec = rvec, tvec = tvec, cameraMatrix = cameraMatrix, distCoeffs = distCoeffs, foreground = foreground)
         camParams.append(params)
+
     print(frame)
     data = []
+    #instantiate grid of voxels. loop over all voxels
     voxels = np.full(shape=(config['world_width'], config['world_height'], config['world_depth']), fill_value=False)
     for x in range(width):
         print(str(100*(x+1)/width) + " %")
@@ -83,6 +91,8 @@ def set_voxel_positions(width, height, depth, frame):
                     params = camParams[i]
                     table = tables[i]
                     imgpoints = []
+                    
+                    #if the lookup table is not initialized, we project voor each voxel the imgpoint and store it in the lookup table
                     if(tableInitialized == False):
                         coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
                         imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
@@ -93,6 +103,7 @@ def set_voxel_positions(width, height, depth, frame):
                     else:
                         imagepoints = table[x,y,z]
 
+                    #get the foreground mask of the camera. if the pixel is on for every camera, store the pixel.
                     foreground = params["foreground"]
                     (heightIm, widthIm) = foreground.shape
                     if 0 <= imagepoints[0] < heightIm and 0 <= imagepoints[1] < widthIm:
@@ -104,6 +115,7 @@ def set_voxel_positions(width, height, depth, frame):
                 if isOn:
                     data.append([x * const.BLOCK_SIZE - width / 2, z * const.BLOCK_SIZE , y * const.BLOCK_SIZE - depth / 2])
                     voxels[x,y,z] = True
+    
     tableInitialized = True
     prevPositions = data
     print("Start Marching Cube")
@@ -119,8 +131,9 @@ def set_voxel_positions_xor(width,height,depth,frame):
     for cam in camArray:
         camPath = cam[0]
         if imgTablesInitialized == False:
+            #initialize dummy values for the image lookup table
             imgTables[cam[2]] = np.full(shape = (644, 486, 3), fill_value= [-1,-1,-1])
-            #get_background_model(cam)
+            
         rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
         tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
         cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
@@ -130,7 +143,8 @@ def set_voxel_positions_xor(width,height,depth,frame):
 
     if imgTablesInitialized == False:
         print(str(width) + ' ' + str(height) + ' ' + str(depth))
-
+        #only for the second frame, we need to calculate and store the voxels corresponding to each image coordinate.
+        #we do this by looping over the original voxel table, and appending each voxel to its corresponding projection point
         for cam in camArray:
             for x in range(width):
                 for y in range(depth):
@@ -150,6 +164,7 @@ def set_voxel_positions_xor(width,height,depth,frame):
     for cam in camArray:
         pixelsOff, pixelsOn, res = get_difference(cam,frame)
         table = imgTables[cam[2]]
+        #turn the found projection points into voxel coordinates. Either remove them from the 'on' voxels or append them
         voxelsOn = [table[coord[1],coord[0]] for coord in pixelsOn]
         voxelsOff = [table[coord[1],coord[0]] for coord in pixelsOff]
         onVoxels = [[voxelCoord[0] * const.BLOCK_SIZE - width / 2, voxelCoord[2] * const.BLOCK_SIZE , voxelCoord[1] * const.BLOCK_SIZE - depth / 2] for voxelCoord in voxelsOn]
@@ -174,6 +189,7 @@ def get_cam_positions():
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     cam_positions = []
     for i in range(len(camArray)):
+        # calculate the real world camera positions.
         rvec = getDataFromXml(camArray[i][0] + 'data.xml', 'RVecs')
         rotationMatrix = cv.Rodrigues(np.array(rvec).astype(np.float32))[0]
         tvec = getDataFromXml(camArray[i][0] + 'data.xml', 'TVecs')
@@ -190,6 +206,7 @@ def get_cam_rotation_matrices():
     for i in range(len(camArray)):
         rvec = getDataFromXml(camArray[i][0] + '/data.xml', 'RVecs')
         rotationMatrix = cv.Rodrigues(np.array(rvec).astype(np.float32))[0]
+        #calculate the camera matrices
         rotationMatrix = rotationMatrix.transpose()
         rotationMatrix = [rotationMatrix[0], rotationMatrix[2], rotationMatrix[1]]
         cam_rotations.append(glm.mat4(np.matrix(rotationMatrix).T))
@@ -197,6 +214,7 @@ def get_cam_rotation_matrices():
     print(cam_rotations)
 
     for c in range(len(cam_rotations)):
+        #transform from radians to degrees.
         cam_rotations[c] = glm.rotate(cam_rotations[c], -np.pi/2 , [0, 1, 0])
     return cam_rotations
 

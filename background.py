@@ -68,14 +68,15 @@ def channelDist(model, val, dim):
 def dist(model, val):
     return const.H_WEIGHT * channelDist(model,val,const.H) + const.S_WEIGHT * channelDist(model,val,const.S) + const.V_WEIGHT * channelDist(model,val,const.V)
 
-
+#turn it black and white, depending on the threshold
 def mask(model, val):
     if dist(model,val) > const.THRESHOLD:
         return 255
     else :
         return 0
 
-
+#when left clicking, display vallues from the channel and total dist
+#when right clicking, show the mask
 def click_event(event, x, y, flags, params):
     if event == cv.EVENT_LBUTTONDOWN:
         for k in range(3):
@@ -89,12 +90,15 @@ def click_event(event, x, y, flags, params):
             showImage(const.WINDOW_NAME, maskF)
         showMask = not showMask
 
+#get vertical line
 def getVerticalLine(size):
     return np.ones(shape=[size, 1], dtype=np.uint8)
 
+#get horizontal line
 def getHorizontalLine(size):
     return np.ones(shape=[1, size], dtype=np.uint8)
 
+#get an axis aligned cross grid
 def getAxisAlignedCross(size):
     res = np.zeros(shape=size, dtype=np.uint8)
     l = size[0]//2
@@ -105,8 +109,10 @@ def getAxisAlignedCross(size):
                 res[i,j] = 1
     return res
 
+#function to subtract the background from the frame.
 def substractBackground(camera, videoType, model, frame):
     global lastFrame
+    #extracts frame from video
     video = cv.VideoCapture(camera + videoType)
     frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
     c = int(video.get(cv.CAP_PROP_FRAME_WIDTH ))
@@ -118,6 +124,7 @@ def substractBackground(camera, videoType, model, frame):
     global maskF
     global showMask
 
+    #create the background mask
     # for fc in range(frameCount):
     video.set(cv.CAP_PROP_POS_FRAMES, frame)
     ret, frame = video.read()
@@ -126,6 +133,7 @@ def substractBackground(camera, videoType, model, frame):
         for j in range(c):
             raw[i,j] = mask(model[i, j], frame[i, j])
 
+    #erode and dilate the background image to fill holes and get rid of as much noise as possible.
     raw = cv.morphologyEx(raw, cv.MORPH_OPEN, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
     raw = cv.morphologyEx(raw, cv.MORPH_OPEN, getAxisAlignedCross((5,3)))
     raw = cv.morphologyEx(raw, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_ELLIPSE, (3, 3)))
@@ -138,15 +146,18 @@ def substractBackground(camera, videoType, model, frame):
     #showImage(const.WINDOW_NAME, raw)
     #cv.setMouseCallback(const.WINDOW_NAME, click_event)
 
+    #find the contours of the image
     contours, _ = cv.findContours(raw, cv.RETR_CCOMP, cv.CHAIN_APPROX_SIMPLE);
     big_blobs = []
 
+    #find the big blobs.
     if len(contours) > 0:
         for i in range(len(contours)):
             contour_area = cv.contourArea(contours[i]);
             if contour_area > 5000:
                 big_blobs.append(i)
 
+    #only keep the big blobs in order to get rid of noise.
     res = np.zeros(shape=[l, c], dtype=np.uint8)
     for i in range(len(big_blobs)):
         res = cv.drawContours(res, contours, big_blobs[i], 255, cv.FILLED, 8)
@@ -159,23 +170,28 @@ def substractBackground(camera, videoType, model, frame):
     return res
     #cv.imwrite(camera+"foreground.png", res)
 
+#gets the foreground mask by subtracting the background from the current frame
 def get_foreground_mask(camera, frame):
     res = substractBackground(camera[0], const.VIDEO_TEST, models[camera[2]], frame)
     return res
 
+#gets the background model for the camera
 def get_background_model(camera):
     model = backgroundModel(camera[0], const.VIDEO_BACKGROUND)
     models.append(model)
 
+#returns the pixels that switched from on to off or viceversa
 def get_difference(camera, frame):
     global lastFrame
     lFrame = lastFrame
+    #get the background subtraction for this frame
     res = substractBackground(camera[0], const.VIDEO_TEST, models[camera[2]], frame)
     shape = res.shape
     width = shape[1]
     height = shape[0]
     newpixelson = []
     newpixelsoff = []
+    #check which pixels changed
     for x in range(height):
         for y in range(width):
             if(res[x,y] != lFrame[x,y]):
