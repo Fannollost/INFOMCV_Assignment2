@@ -6,7 +6,7 @@ from engine.buffer.texture import *
 from engine.buffer.hdrbuffer import HDRBuffer
 from engine.buffer.blurbuffer import BlurBuffer
 from engine.effect.bloom import Bloom
-from assignment import set_voxel_positions, generate_grid, get_cam_positions, get_cam_rotation_matrices
+from assignment import set_voxel_positions, generate_grid, get_cam_positions, get_cam_rotation_matrices, set_voxel_positions_xor
 from engine.camera import Camera
 from engine.config import config
 
@@ -15,7 +15,6 @@ frame = 0
 firstTime = True
 window_width, window_height = config['window_width'], config['window_height']
 camera = Camera(glm.vec3(0, 100, 0), pitch=-90, yaw=0, speed=40)
-
 
 def draw_objs(obj, program, perspective, light_pos, texture, normal, specular, depth):
     program.use()
@@ -130,6 +129,7 @@ def main():
         if config['debug_mode']:
             print(glGetError())
 
+        positions = []
         current_time = glfw.get_time()
         delta_time = current_time - last_time
         last_time = current_time
@@ -157,10 +157,14 @@ def main():
         hdrbuffer.finalize()
 
         bloom.draw_processed_scene()
+
         if(frame != 0):
-            positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'], frame)
+            print("s")
+            #positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'],frame)
+            positions = set_voxel_positions_xor(config['world_width'], config['world_height'], config['world_width'],frame)
             cube.set_multiple_positions(positions)
             frame += 1
+            print("f")
         glfw.poll_events()
         glfw.swap_buffers(window)
        
@@ -185,10 +189,13 @@ def key_callback(window, key, scancode, action, mods):
     if key == glfw.KEY_G and action == glfw.PRESS:
         global cube, frame
         frame = 0
+        print("OK!")
         positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'], 0)
         cube.set_multiple_positions(positions)
-        #remove this inorder to not render it everyframe again.
-        #frame += 1
+        #remove this inorder to  render it every frame again for videos.
+        frame = 1
+        print("FRAME NU")
+        print(frame)
 
 
 def mouse_move(win, pos_x, pos_y):

@@ -6,6 +6,7 @@ import numpy as np
 from cameraCalibration import getImagesFromVideo, showImage
 
 models = []
+lastFrame = []
 
 class Stats(object):
     """
@@ -39,20 +40,22 @@ def backgroundModel(camera, videoType):
     l = int(video.get(cv.CAP_PROP_FRAME_HEIGHT))
     res = np.empty((l, c, 3), dtype=object)
     frames = getImagesFromVideo(camera, videoType, const.IMAGES_BACKGROUND_NB)
-
     for i in range(l):
         for j in range(c):
             for k in range(3):
                 res[i, j, k] = Stats()
 
+    i = 0
     for frame in frames:
         frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         l,c,_ = frame.shape
+        print(str(100*(i+1)/len(frames)) + " %")
         for i in range(l):
             for j in range(c):
                 for k in range(3):
                     res[i,j,k].add(frame[i,j,k])
-
+        i +=1
+    print("Kk")
     return res
 
 def channelDist(model, val, dim):
@@ -105,6 +108,7 @@ def getAxisAlignedCross(size):
     return res
 
 def substractBackground(camera, videoType, model, frame):
+    global lastFrame
     video = cv.VideoCapture(camera + videoType)
     frameCount = int(video.get(cv.CAP_PROP_FRAME_COUNT))
     c = int(video.get(cv.CAP_PROP_FRAME_WIDTH ))
@@ -153,6 +157,7 @@ def substractBackground(camera, videoType, model, frame):
     maskF = res
     # Show keypoints
     #showImage(const.WINDOW_NAME, res, 0)
+    lastFrame = res
     return res
     #cv.imwrite(camera+"foreground.png", res)
 
@@ -163,11 +168,30 @@ def get_foreground_mask(camera, frame):
 def get_background_model(camera):
     model = backgroundModel(camera[0], const.VIDEO_BACKGROUND)
     models.append(model)
+
+def get_difference(camera, frame):
+    global lastFrame
+    lFrame = lastFrame
+    res = substractBackground(camera[0], const.VIDEO_TEST, models[camera[2]], frame)
+    shape = res.shape
+    width = shape[1]
+    height = shape[0]
+    newpixelson = []
+    newpixelsoff = []
+    for x in range(height):
+        for y in range(width):
+            if(res[x,y] != lFrame[x,y]):
+                if(res[x,y] != 0):
+                    newpixelsoff.append((x,y))
+                else:
+                    newpixelson.append((x,y))
     
-if __name__ == "__main__":
-    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
-    for i in range(4):
-        print(str(i))
-        model = backgroundModel(camArray[i][0], const.VIDEO_BACKGROUND)
-        substractBackground(camArray[i][0], const.VIDEO_TEST, model, 0)
-    print("THE END")
+    return newpixelsoff, newpixelson, res
+
+#if __name__ == "__main__":
+#    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
+ #   for i in range(4):
+ #       print(str(i))
+ #       model = backgroundModel(camArray[i][0], const.VIDEO_BACKGROUND)
+ #       substractBackground(camArray[i][0], const.VIDEO_TEST, model, 0)
+ #   print("THE END")

@@ -9,11 +9,18 @@ from background import get_background_model, get_foreground_mask
 from marchingCube import marchingCube
 
 
-
 global tables
 global tableInitalized
 tables = [0,0,0,0]
 tableInitialized = False
+
+global imgTables
+global imgTablesInitialized
+imgTables = [0,0,0,0]
+imgTablesInitialized = False
+
+global prevPositions
+prevPositions = []
 
 def generate_grid(width, depth):
     # Generates the floor grid locations
@@ -49,6 +56,7 @@ def set_voxel_positions(width, height, depth, frame):
     camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
     global tables
     global tableInitialized
+    global prevPositions
     camParams =[]
     for cam in camArray:
         if tableInitialized == False:
@@ -74,8 +82,7 @@ def set_voxel_positions(width, height, depth, frame):
                 for i in range(len(camArray)):
                     params = camParams[i]
                     table = tables[i]
-                    imagepoints = []
-
+                    imgpoints = []
                     if(tableInitialized == False):
                         coord = ( (x - width / 2) * const.SCENE_SCALE_DIV, (y - depth / 2) * const.SCENE_SCALE_DIV, -z* const.SCENE_SCALE_DIV )
                         imagepoints, _ = cv.projectPoints(coord, params["rvec"], params["tvec"], params["cameraMatrix"],
@@ -98,10 +105,68 @@ def set_voxel_positions(width, height, depth, frame):
                     data.append([x * const.BLOCK_SIZE - width / 2, z * const.BLOCK_SIZE , y * const.BLOCK_SIZE - depth / 2])
                     voxels[x,y,z] = True
     tableInitialized = True
+    prevPositions = data
     print("Start Marching Cube")
     marchingCube(voxels)
     print("End Marching Cube")
     return data
+
+def set_voxel_positions_xor(width,height,depth,frame):
+    #calculate difference in background extraction
+    global imgTables, imgTablesInitialized, tables, prevPositions
+    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
+    camParams =[]
+    for cam in camArray:
+        camPath = cam[0]
+        if imgTablesInitialized == False:
+            imgTables[cam[2]] = np.full(shape = (644, 486, 3), fill_value= [-1,-1,-1])
+            #get_background_model(cam)
+        rvec = getDataFromXml(camPath + 'data.xml', 'RVecs')
+        tvec = getDataFromXml(camPath + 'data.xml', 'TVecs')
+        cameraMatrix = getDataFromXml(camPath + 'data.xml', 'CameraMatrix')
+        distCoeffs = getDataFromXml(camPath + 'data.xml', 'DistortionCoeffs')
+        params  = dict(rvec = rvec, tvec = tvec, cameraMatrix = cameraMatrix, distCoeffs = distCoeffs)
+        camParams.append(params)
+
+    if imgTablesInitialized == False:
+        print(str(width) + ' ' + str(height) + ' ' + str(depth))
+
+        for cam in camArray:
+            for x in range(width):
+                for y in range(depth):
+                    for z in range(height):
+                        imgTable = imgTables[cam[2]]
+                        table = tables[cam[2]]
+                        correspondingPixel = table[x,y,z]
+                        heightIm = 644
+                        widthIm = 486
+                        if 0 <= correspondingPixel[0] < heightIm and 0 <= correspondingPixel[1] < widthIm:
+                            np.append(imgTable[correspondingPixel[0],correspondingPixel[1]], (x,y,z))
+            imgTables[cam[2]] = imgTable
+        imgTablesInitialized = True
+
+    newVoxelsOn = []
+    newVoxelsOff = []
+    for cam in camArray:
+        pixelsOff, pixelsOn, res = get_difference(cam,frame)
+        table = imgTables[cam[2]]
+        voxelsOn = [table[coord[1],coord[0]] for coord in pixelsOn]
+        voxelsOff = [table[coord[1],coord[0]] for coord in pixelsOff]
+        onVoxels = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in voxelsOn]
+        offVoxels = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in voxelsOff]
+        if newVoxelsOn == []:
+            newVoxelsOn.append(onVoxels)
+        else:
+            newVoxelsOn = [i for i in onVoxels if i in newVoxelsOn]
+
+        newVoxelsOff.append(offVoxels)
+
+    for vox in newVoxelsOff:
+        if vox in prevPositions:
+            prevPositions.remove(vox)
+
+    pos = prevPositions + newVoxelsOn
+    return pos
 
 # Generates dummy camera locations at the 4 corners of the room
 # TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.
@@ -135,5 +200,3 @@ def get_cam_rotation_matrices():
     for c in range(len(cam_rotations)):
         cam_rotations[c] = glm.rotate(cam_rotations[c], -np.pi/2 , [0, 1, 0])
     return cam_rotations
-    
-get_cam_rotation_matrices()
