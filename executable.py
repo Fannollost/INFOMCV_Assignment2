@@ -189,7 +189,6 @@ def key_callback(window, key, scancode, action, mods):
     if key == glfw.KEY_G and action == glfw.PRESS:
         global cube, frame
         frame = 0
-        print("OK!")
         positions = set_voxel_positions(config['world_width'], config['world_height'], config['world_width'], 0)
         cube.set_multiple_positions(positions)
         #remove this inorder to  render it every frame again for videos.

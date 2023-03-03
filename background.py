@@ -49,13 +49,11 @@ def backgroundModel(camera, videoType):
     for frame in frames:
         frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         l,c,_ = frame.shape
-        print(str(100*(i+1)/len(frames)) + " %")
         for i in range(l):
             for j in range(c):
                 for k in range(3):
                     res[i,j,k].add(frame[i,j,k])
         i +=1
-    print("Kk")
     return res
 
 def channelDist(model, val, dim):
