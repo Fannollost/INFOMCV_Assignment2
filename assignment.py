@@ -5,11 +5,11 @@ import xml.etree.ElementTree as ET
 import constants as const
 import cv2 as cv
 from engine.config import config
-from background import get_background_model, get_foreground_mask
+from background import get_background_model, get_foreground_mask, get_difference
 from marchingCube import marchingCube
 
 
-global tables
+global tablesMr
 global tableInitalized
 tables = [0,0,0,0]
 tableInitialized = False
@@ -152,8 +152,8 @@ def set_voxel_positions_xor(width,height,depth,frame):
         table = imgTables[cam[2]]
         voxelsOn = [table[coord[1],coord[0]] for coord in pixelsOn]
         voxelsOff = [table[coord[1],coord[0]] for coord in pixelsOff]
-        onVoxels = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in voxelsOn]
-        offVoxels = [[voxelCoord[0] * block_size - width / 2, voxelCoord[2] * block_size , voxelCoord[1] * block_size - depth / 2] for voxelCoord in voxelsOff]
+        onVoxels = [[voxelCoord[0] * const.BLOCK_SIZE - width / 2, voxelCoord[2] * const.BLOCK_SIZE , voxelCoord[1] * const.BLOCK_SIZE - depth / 2] for voxelCoord in voxelsOn]
+        offVoxels = [[voxelCoord[0] * const.BLOCK_SIZE - width / 2, voxelCoord[2] * const.BLOCK_SIZE , voxelCoord[1] * const.BLOCK_SIZE - depth / 2] for voxelCoord in voxelsOff]
         if newVoxelsOn == []:
             newVoxelsOn.append(onVoxels)
         else:
@@ -176,7 +176,6 @@ def get_cam_positions():
     for i in range(len(camArray)):
         rvec = getDataFromXml(camArray[i][0] + 'data.xml', 'RVecs')
         rotationMatrix = cv.Rodrigues(np.array(rvec).astype(np.float32))[0]
-        #rotationMatrix = rotationMatrix * [[1,0,0],[0,-1,0],[0,0,-1]]
         tvec = getDataFromXml(camArray[i][0] + 'data.xml', 'TVecs')
         camPos = -np.matrix(rotationMatrix).T * np.matrix(np.array(tvec).astype(np.float32)).T
         print([camPos[0], camPos[1], camPos[2]])
@@ -200,3 +199,6 @@ def get_cam_rotation_matrices():
     for c in range(len(cam_rotations)):
         cam_rotations[c] = glm.rotate(cam_rotations[c], -np.pi/2 , [0, 1, 0])
     return cam_rotations
+
+
+get_cam_rotation_matrices()
