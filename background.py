@@ -55,7 +55,6 @@ def backgroundModel(camera, videoType):
                 for k in range(3):
                     res[i,j,k].add(frame[i,j,k])
         i +=1
-    print("Kk")
     return res
 
 def channelDist(model, val, dim):
