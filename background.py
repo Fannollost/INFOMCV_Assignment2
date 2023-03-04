@@ -49,8 +49,8 @@ def backgroundModel(camera, videoType):
     for frame in frames:
         frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
         l,c,_ = frame.shape
-        print(str(100*(i+1)/len(frames)) + " %")
         for i in range(l):
+            print(str(100*(i+1)/len(frames)) + " %")
             for j in range(c):
                 for k in range(3):
                     res[i,j,k].add(frame[i,j,k])
@@ -169,8 +169,8 @@ def substractBackground(camera, videoType, model, frame):
     # Show keypoints
     #showImage(const.WINDOW_NAME, res, 0)
     lastFrame = res
+    cv.imwrite(camera+"foreground.png", res)
     return res
-    #cv.imwrite(camera+"foreground.png", res)
 
 #gets the foreground mask by subtracting the background from the current frame
 def get_foreground_mask(camera, frame):
@@ -204,10 +204,10 @@ def get_difference(camera, frame):
     
     return newpixelsoff, newpixelson, res
 
-#if __name__ == "__main__":
-#    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
- #   for i in range(4):
- #       print(str(i))
- #       model = backgroundModel(camArray[i][0], const.VIDEO_BACKGROUND)
- #       substractBackground(camArray[i][0], const.VIDEO_TEST, model, 0)
- #   print("THE END")
+if __name__ == "__main__":
+    camArray = [const.CAM1, const.CAM2, const.CAM3, const.CAM4]
+    for i in range(4):
+        print(str(i))
+        model = backgroundModel(camArray[i][0], const.VIDEO_BACKGROUND)
+        substractBackground(camArray[i][0], const.VIDEO_TEST, model, 0)
+    print("THE END")

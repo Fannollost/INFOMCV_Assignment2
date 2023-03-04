@@ -219,4 +219,4 @@ def get_cam_rotation_matrices():
     return cam_rotations
 
 
-get_cam_rotation_matrices()
+get_cam_positions()
