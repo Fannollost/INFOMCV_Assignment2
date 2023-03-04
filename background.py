@@ -11,6 +11,7 @@ lastFrame = []
 class Stats(object):
     """
     Welford's algorithm computes variance and mean online
+    A class computing the mean of a list each time an element is inserted without having to keep all the items in memory
     """
 
     def __init__(self):
@@ -34,6 +35,8 @@ class Stats(object):
     def std(self):
         return np.sqrt(self.variance)
 
+# Compute for each pixel coordinate and for each channel the mean, varaince and standard deviation
+# over a given number of frames of the background video
 def backgroundModel(camera, videoType):
     video = cv.VideoCapture(camera + videoType)
     c = int(video.get(cv.CAP_PROP_FRAME_WIDTH ))
@@ -57,6 +60,8 @@ def backgroundModel(camera, videoType):
         i +=1
     return res
 
+# Given a background model value and the actual value (of the image with a foreground)
+# Computes the number of Standard deviation between the model and the foreground image
 def channelDist(model, val, dim):
     delta = model[dim].mean - val[dim]
     if delta < 0:
@@ -66,18 +71,20 @@ def channelDist(model, val, dim):
     else :
         return delta * 2
 
+# Compute the weigthed sum of all channel to give the final distance between the model and the image with a foreground
 def dist(model, val):
     return const.H_WEIGHT * channelDist(model,val,const.H) + const.S_WEIGHT * channelDist(model,val,const.S) + const.V_WEIGHT * channelDist(model,val,const.V)
 
-#turn it black and white, depending on the threshold
+# Return black (distance lower than treshold and considered as background)
+# or white (distance bigger than treshold and considered as foreground)
 def mask(model, val):
     if dist(model,val) > const.THRESHOLD:
         return 255
     else :
         return 0
 
-#when left clicking, display vallues from the channel and total dist
-#when right clicking, show the mask
+# When left clicking, display vallues from the channel and total dist
+# When right clicking, show the mask
 def click_event(event, x, y, flags, params):
     if event == cv.EVENT_LBUTTONDOWN:
         for k in range(3):
@@ -91,15 +98,15 @@ def click_event(event, x, y, flags, params):
             showImage(const.WINDOW_NAME, maskF)
         showMask = not showMask
 
-#get vertical line
+# Return vertical line / use for the kernel of morphology transform in post processing step
 def getVerticalLine(size):
     return np.ones(shape=[size, 1], dtype=np.uint8)
 
-#get horizontal line
+# Return horizontal line / use for the kernel of morphology transform in post processing step
 def getHorizontalLine(size):
     return np.ones(shape=[1, size], dtype=np.uint8)
 
-#get an axis aligned cross grid
+# Return an axis aligned cross / use for the kernel of morphology transform in post processing step
 def getAxisAlignedCross(size):
     res = np.zeros(shape=size, dtype=np.uint8)
     l = size[0]//2
@@ -110,7 +117,7 @@ def getAxisAlignedCross(size):
                 res[i,j] = 1
     return res
 
-#function to subtract the background from the frame.
+# Function to compute the mask where white pixel means the pixel is considered as foreground and black mean considered as background.
 def substractBackground(camera, videoType, model, frame):
     global lastFrame
     #extracts frame from video
@@ -171,17 +178,17 @@ def substractBackground(camera, videoType, model, frame):
     cv.imwrite(camera+"foreground.png", res)
     return res
 
-#gets the foreground mask by subtracting the background from the current frame
+# Gets the foreground mask by subtracting the background from the current frame
 def get_foreground_mask(camera, frame):
     res = substractBackground(camera[0], const.VIDEO_TEST, models[camera[2]], frame)
     return res
 
-#gets the background model for the camera
+# Gets the background model for the camera
 def get_background_model(camera):
     model = backgroundModel(camera[0], const.VIDEO_BACKGROUND)
     models.append(model)
 
-#returns the pixels that switched from on to off or viceversa
+# Returns the pixels that switched from on to off or viceversa
 def get_difference(camera, frame):
     global lastFrame
     lFrame = lastFrame
